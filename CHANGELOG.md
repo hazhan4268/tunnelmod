@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.4 — 2026-06-26
+
+- Added graphical terminal UI to the official online installer using `whiptail`
+- Added welcome, prerequisite confirmation, domain SSL form, progress steps, and final success dialog
+- Added `TUNNELMOD_NO_TUI=1` fallback for plain terminal or automation use
+- Installer still falls back to normal text prompts when TUI is unavailable
+
 ## 1.2.2 — 2026-06-26
 
 - Added repair flow for partial installations where Gunicorn is healthy but Nginx has not loaded the 8443 listener
