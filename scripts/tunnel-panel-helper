@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+die(){ echo "helper: $*" >&2; exit 2; }
+is_ip(){ [[ "$1" =~ ^[0-9a-fA-F:.]+$ ]]; }
+is_port(){ [[ "$1" =~ ^[0-9]+$ ]] && ((1 <= 10#$1 && 10#$1 <= 65535)); }
+is_id(){ [[ "$1" =~ ^[0-9]+$ ]]; }
+is_iface(){ [[ "$1" =~ ^tp[0-9]{1,5}$ ]]; }
+is_proto(){ [[ "$1" == tcp || "$1" == udp ]]; }
+save_rules(){ command -v netfilter-persistent >/dev/null && netfilter-persistent save >/dev/null || true; }
+
+forward_add(){
+  [[ $# -eq 8 ]] || die "forward-add arguments"
+  local id="$2" public="$3" proto="$4" lport="$5" dest="$6" dport="$7" iface="$8"
+  is_id "$id"; is_ip "$public"; is_proto "$proto"; is_port "$lport"; is_ip "$dest"; is_port "$dport"
+  [[ "$iface" == "-" ]] || is_iface "$iface"
+  local comment="tunnel-panel:${id}:${proto}"
+  iptables -t nat -C PREROUTING -d "$public" -p "$proto" --dport "$lport" -m comment --comment "$comment" -j DNAT --to-destination "$dest:$dport" 2>/dev/null || \
+    iptables -t nat -A PREROUTING -d "$public" -p "$proto" --dport "$lport" -m comment --comment "$comment" -j DNAT --to-destination "$dest:$dport"
+  if [[ "$iface" == "-" ]]; then
+    iptables -t nat -C POSTROUTING -p "$proto" -d "$dest" --dport "$dport" -m comment --comment "$comment" -j MASQUERADE 2>/dev/null || \
+      iptables -t nat -A POSTROUTING -p "$proto" -d "$dest" --dport "$dport" -m comment --comment "$comment" -j MASQUERADE
+  else
+    iptables -t nat -C POSTROUTING -o "$iface" -p "$proto" -d "$dest" --dport "$dport" -m comment --comment "$comment" -j MASQUERADE 2>/dev/null || \
+      iptables -t nat -A POSTROUTING -o "$iface" -p "$proto" -d "$dest" --dport "$dport" -m comment --comment "$comment" -j MASQUERADE
+  fi
+  iptables -C FORWARD -p "$proto" -d "$dest" --dport "$dport" -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m comment --comment "$comment" -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -p "$proto" -d "$dest" --dport "$dport" -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m comment --comment "$comment" -j ACCEPT
+  iptables -C FORWARD -p "$proto" -s "$dest" --sport "$dport" -m conntrack --ctstate ESTABLISHED,RELATED -m comment --comment "$comment" -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -p "$proto" -s "$dest" --sport "$dport" -m conntrack --ctstate ESTABLISHED,RELATED -m comment --comment "$comment" -j ACCEPT
+  save_rules
+}
+
+forward_del(){
+  [[ $# -eq 8 ]] || die "forward-del arguments"
+  local id="$2" public="$3" proto="$4" lport="$5" dest="$6" dport="$7" iface="$8"
+  is_id "$id"; is_ip "$public"; is_proto "$proto"; is_port "$lport"; is_ip "$dest"; is_port "$dport"
+  [[ "$iface" == "-" ]] || is_iface "$iface"
+  local comment="tunnel-panel:${id}:${proto}"
+  iptables -t nat -D PREROUTING -d "$public" -p "$proto" --dport "$lport" -m comment --comment "$comment" -j DNAT --to-destination "$dest:$dport" 2>/dev/null || true
+  if [[ "$iface" == "-" ]]; then
+    iptables -t nat -D POSTROUTING -p "$proto" -d "$dest" --dport "$dport" -m comment --comment "$comment" -j MASQUERADE 2>/dev/null || true
+  else
+    iptables -t nat -D POSTROUTING -o "$iface" -p "$proto" -d "$dest" --dport "$dport" -m comment --comment "$comment" -j MASQUERADE 2>/dev/null || true
+  fi
+  iptables -D FORWARD -p "$proto" -d "$dest" --dport "$dport" -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m comment --comment "$comment" -j ACCEPT 2>/dev/null || true
+  iptables -D FORWARD -p "$proto" -s "$dest" --sport "$dport" -m conntrack --ctstate ESTABLISHED,RELATED -m comment --comment "$comment" -j ACCEPT 2>/dev/null || true
+  save_rules
+}
+
+wg_up(){
+  [[ $# -eq 3 ]] || die "wg-up arguments"
+  local iface="$2" source="$3"; is_iface "$iface"
+  [[ "$source" =~ ^/tmp/tp[0-9]+-[A-Za-z0-9_-]+\.conf$ ]] || die "invalid config path"
+  [[ -f "$source" && ! -L "$source" ]] || die "config missing or unsafe"
+  [[ "$(stat -c %U "$source")" == tunnelpanel ]] || die "invalid config owner"
+  install -m 600 "$source" "/etc/wireguard/${iface}.conf"
+  systemctl enable "wg-quick@${iface}" >/dev/null
+  systemctl restart "wg-quick@${iface}"
+}
+
+wg_down(){
+  [[ $# -eq 2 ]] || die "wg-down arguments"
+  is_iface "$2"
+  systemctl disable --now "wg-quick@$2" 2>/dev/null || true
+  rm -f "/etc/wireguard/$2.conf"
+}
+
+haproxy_apply(){
+  [[ $# -eq 2 ]] || die "haproxy-apply arguments"
+  [[ "$2" == "/var/lib/tunnel-panel/haproxy.cfg" ]] || die "invalid HAProxy path"
+  [[ -f "$2" && ! -L "$2" ]] || die "HAProxy config missing or unsafe"
+  [[ "$(stat -c %U "$2")" == tunnelpanel ]] || die "invalid HAProxy config owner"
+  haproxy -c -f "$2"
+  install -o root -g root -m 640 "$2" /etc/haproxy/tunnel-panel.cfg
+  systemctl enable tunnel-panel-haproxy >/dev/null
+  systemctl restart tunnel-panel-haproxy
+}
+
+haproxy_stop(){
+  [[ $# -eq 2 ]] || die "haproxy-stop arguments"
+  systemctl disable --now tunnel-panel-haproxy 2>/dev/null || true
+}
+
+case "${1:-}" in
+  forward-add) forward_add "$@" ;;
+  forward-del) forward_del "$@" ;;
+  wg-up) wg_up "$@" ;;
+  wg-down) wg_down "$@" ;;
+  haproxy-apply) haproxy_apply "$@" ;;
+  haproxy-stop) haproxy_stop "$@" ;;
+  *) die "unknown action" ;;
+esac

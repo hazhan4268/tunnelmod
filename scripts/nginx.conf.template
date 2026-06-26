@@ -1,0 +1,25 @@
+limit_req_zone $binary_remote_addr zone=panel_login:10m rate=10r/m;
+server {
+    listen 8443 ssl;
+    listen [::]:8443 ssl;
+    server_name _;
+    ssl_certificate /etc/tunnel-panel/panel.crt;
+    ssl_certificate_key /etc/tunnel-panel/panel.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_tickets off;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    client_max_body_size 64k;
+
+    location = /login {
+        limit_req zone=panel_login burst=5 nodelay;
+        proxy_pass http://127.0.0.1:9080;
+        include proxy_params;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:9080;
+        include proxy_params;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+

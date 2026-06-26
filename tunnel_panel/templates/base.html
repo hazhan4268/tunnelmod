@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}پنل تونل{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('dashboard') }}">Tunnel Panel</a>
+    {% if session.get('authenticated') %}
+    <nav>
+      <a href="{{ url_for('dashboard') }}">داشبورد</a>
+      <a href="{{ url_for('servers') }}">سرورها</a>
+      <a href="{{ url_for('tunnels') }}">تونل‌ها</a>
+      <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="link" type="submit">خروج</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  <main class="container">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert {{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
+

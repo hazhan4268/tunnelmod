@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}ورود | پنل تونل{% endblock %}
+{% block content %}
+<section class="login-card card">
+  <h1>ورود مدیر</h1>
+  <p class="muted">مدیریت امن سرورها و مسیرهای ارتباطی</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>رمز عبور</label>
+    <input type="password" name="password" required autofocus autocomplete="current-password">
+    <button type="submit">ورود</button>
+  </form>
+</section>
+{% endblock %}
+

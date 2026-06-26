@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}سرورها | پنل تونل{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>سرورهای خارج</h1><p class="muted">رمز فقط یک‌بار برای نصب کلید استفاده می‌شود و ذخیره نخواهد شد.</p></div></div>
+<section class="grid two">
+  <div class="card">
+    <h2>افزودن سرور</h2>
+    <form method="post" class="form-grid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>نام نمایشی<input name="name" required placeholder="سرور آلمان"></label>
+      <label>IPv4 سرور<input name="host" required dir="ltr" placeholder="203.0.113.20"></label>
+      <label>پورت SSH<input type="number" name="ssh_port" value="22" min="1" max="65535" required></label>
+      <label>کاربر SSH<input name="ssh_user" value="root" required></label>
+      <label class="full">رمز موقت root<input type="password" name="password" required autocomplete="new-password"></label>
+      <button class="full" type="submit">اتصال و افزودن سرور</button>
+    </form>
+  </div>
+  <div class="card note">
+    <h2>مدل امنیتی</h2>
+    <p>پنل با رمز وارد سرور می‌شود، کلید عمومی اختصاصی خود را اضافه می‌کند و بلافاصله اتصال کلیدی را آزمایش می‌کند.</p>
+    <p>پس از آن هیچ نسخه‌ای از رمز SSH در پایگاه داده وجود ندارد.</p>
+  </div>
+</section>
+<section class="card">
+  <h2>فهرست سرورها</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>نام</th><th>آدرس</th><th>SSH</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+    <tbody>{% for s in servers %}
+      <tr><td>{{ s.name }}</td><td dir="ltr">{{ s.host }}</td><td dir="ltr">{{ s.ssh_user }}:{{ s.ssh_port }}</td>
+      <td><span class="badge {{ s.status }}">{{ s.status }}</span>{% if s.last_error %}<small class="error-text">{{ s.last_error }}</small>{% endif %}</td>
+      <td class="actions">
+        <form method="post" action="{{ url_for('server_test', server_id=s.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="secondary small">تست</button></form>
+        <form method="post" action="{{ url_for('server_delete', server_id=s.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger small">حذف</button></form>
+      </td></tr>
+    {% else %}<tr><td colspan="5" class="empty">سروری اضافه نشده است.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

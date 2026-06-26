@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}تونل‌ها | پنل تونل{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>تونل‌ها</h1><p class="muted">برای امنیت و پنهان‌ماندن مقصد، WireGuard + DNAT پیشنهاد می‌شود.</p></div></div>
+<section class="card">
+  <h2>ایجاد تونل</h2>
+  {% if servers %}
+  <form method="post" class="form-grid tunnel-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>نام<input name="name" required placeholder="HTTPS اصلی"></label>
+    <label>سرور مقصد<select name="server_id" required>{% for s in servers %}<option value="{{ s.id }}">{{ s.name }} — {{ s.host }}</option>{% endfor %}</select></label>
+    <label>روش<select name="mode" required>
+      <option value="wg_dnat">WireGuard + DNAT (پیشنهادی)</option>
+      <option value="wg_haproxy">WireGuard + HAProxy</option>
+      <option value="direct_dnat">DNAT مستقیم</option>
+      <option value="direct_haproxy">HAProxy مستقیم</option>
+    </select></label>
+    <label>پروتکل<select name="protocol"><option value="tcp">TCP</option><option value="udp">UDP</option><option value="both">TCP + UDP</option></select></label>
+    <label>پورت ورودی<input type="number" name="listen_port" min="1" max="65535" value="443" required></label>
+    <label>پورت مقصد<input type="number" name="target_port" min="1" max="65535" value="443" required></label>
+    <button class="full" type="submit">ایجاد و فعال‌سازی</button>
+  </form>
+  {% else %}<p class="empty">ابتدا یک سرور خارج اضافه کنید.</p>{% endif %}
+</section>
+<section class="card">
+  <h2>فهرست تونل‌ها</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>نام</th><th>سرور</th><th>روش</th><th>پروتکل</th><th>مسیر</th><th>وضعیت</th><th></th></tr></thead>
+    <tbody>{% for t in tunnels %}
+      <tr><td>{{ t.name }}</td><td>{{ t.server_name }}<small dir="ltr">{{ t.host }}</small></td><td><code>{{ t.mode }}</code></td><td>{{ t.protocol|upper }}</td>
+      <td dir="ltr">:{{ t.listen_port }} → :{{ t.target_port }}</td><td><span class="badge {{ t.status }}">{{ t.status }}</span>{% if t.last_error %}<small class="error-text">{{ t.last_error }}</small>{% endif %}</td>
+      <td><form method="post" action="{{ url_for('tunnel_delete', tunnel_id=t.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger small">حذف</button></form></td></tr>
+    {% else %}<tr><td colspan="7" class="empty">تونلی وجود ندارد.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

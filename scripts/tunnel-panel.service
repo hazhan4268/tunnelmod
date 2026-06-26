@@ -1,0 +1,23 @@
+[Unit]
+Description=Tunnel Panel web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tunnelpanel
+Group=tunnelpanel
+EnvironmentFile=/etc/tunnel-panel/panel.env
+WorkingDirectory=/opt/tunnel-panel
+ExecStart=/opt/tunnel-panel/venv/bin/gunicorn --workers 2 --threads 2 --bind 127.0.0.1:9080 --access-logfile - --error-logfile - tunnel_panel.app:app
+Restart=on-failure
+RestartSec=3
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/tunnel-panel
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target
+
