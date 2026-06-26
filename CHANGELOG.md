@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3-beta — 2026-06-26
+
+- Online installer now asks for an optional panel domain during the first install
+- If a domain is entered, domain SSL is requested in the same install flow
+- Persian documentation updated for initial SSL setup
+
 ## 0.1.2-beta — 2026-06-26
 
 - Moved generated Nginx panel configuration to `/etc/nginx/conf.d/tunnel-panel.conf`
