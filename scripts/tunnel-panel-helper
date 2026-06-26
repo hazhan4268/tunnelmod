@@ -82,6 +82,58 @@ haproxy_stop(){
   systemctl disable --now tunnel-panel-haproxy 2>/dev/null || true
 }
 
+traffic_stats(){
+  python3 - <<'PY'
+import csv, io, os, re, socket, subprocess
+stats = {}
+def add(tid, proto, ib=0, ob=0, ip=0, op=0):
+    key = (str(tid), proto)
+    row = stats.setdefault(key, [0, 0, 0, 0])
+    row[0] += int(ib); row[1] += int(ob); row[2] += int(ip); row[3] += int(op)
+try:
+    out = subprocess.run(['iptables','-L','FORWARD','-n','-v','-x'], text=True, capture_output=True, timeout=10).stdout
+    for line in out.splitlines():
+        m = re.search(r'tunnel-panel:(\d+):(tcp|udp)', line)
+        if not m:
+            continue
+        parts = line.split()
+        if len(parts) < 2 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue
+        packets, bytes_ = int(parts[0]), int(parts[1])
+        if 'spt:' in line:
+            add(m.group(1), m.group(2), ob=bytes_, op=packets)
+        else:
+            add(m.group(1), m.group(2), ib=bytes_, ip=packets)
+except Exception:
+    pass
+sock_path = '/run/tunnel-panel-haproxy.sock'
+if os.path.exists(sock_path):
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(5)
+        s.connect(sock_path)
+        s.sendall(b'show stat\n')
+        chunks = []
+        while True:
+            chunk = s.recv(65535)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        s.close()
+        text = b''.join(chunks).decode('utf-8', 'replace')
+        text = text.replace('# pxname', 'pxname')
+        for row in csv.DictReader(io.StringIO(text)):
+            if row.get('svname') == 'FRONTEND' and row.get('pxname','').startswith('tp_front_'):
+                tid = row['pxname'].split('_')[-1]
+                add(tid, 'tcp', ib=int(row.get('bin') or 0), ob=int(row.get('bout') or 0))
+    except Exception:
+        pass
+print('id,proto,in_bytes,out_bytes,in_packets,out_packets')
+for (tid, proto), values in sorted(stats.items(), key=lambda x: (int(x[0][0]), x[0][1])):
+    print(f'{tid},{proto},{values[0]},{values[1]},{values[2]},{values[3]}')
+PY
+}
+
 update_check(){
   local source_file="/etc/tunnel-panel/source.path" source_dir local_sha remote_sha local_version remote_version status
   [[ -r "$source_file" ]] || die "source path missing"
@@ -114,6 +166,7 @@ case "${1:-}" in
   wg-down) wg_down "$@" ;;
   haproxy-apply) haproxy_apply "$@" ;;
   haproxy-stop) haproxy_stop "$@" ;;
+  traffic-stats) traffic_stats "$@" ;;
   update-check) update_check "$@" ;;
   update-apply) update_apply "$@" ;;
   *) die "unknown action" ;;
