@@ -127,6 +127,7 @@ def validate_tunnel_form(db, reserved_ports, current_id=None):
 
 def create_app():
     app = Flask(__name__)
+    tls_mode = os.environ.get("PANEL_TLS_MODE", "off").strip().lower()
     app.config.update(
         SECRET_KEY=os.environ.get("PANEL_SECRET", "change-me"),
         DATABASE=os.environ.get("PANEL_DB", "/var/lib/tunnel-panel/panel.db"),
@@ -134,8 +135,9 @@ def create_app():
         HELPER=os.environ.get("PANEL_HELPER", "/usr/local/sbin/tunnel-panel-helper"),
         PUBLIC_IP=os.environ.get("PANEL_PUBLIC_IP", "127.0.0.1"),
         PANEL_DOMAIN=os.environ.get("PANEL_DOMAIN", ""),
+        PANEL_TLS_MODE=tls_mode,
         HAPROXY_RENDER=os.environ.get("PANEL_HAPROXY_RENDER", "/var/lib/tunnel-panel/haproxy.cfg"),
-        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_SECURE=(tls_mode != "off"),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Strict",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
