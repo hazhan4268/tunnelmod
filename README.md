@@ -63,7 +63,7 @@ sudo wg show
 sudo iptables -t nat -L -n -v
 ```
 
-Persian documentation: [README_FA.md](README_FA.md)
+Persian documentation: [README_FA.md](README_FA.md) · [HTML installation guide](docs/install-fa.html)
 
 ## Updating
 
@@ -76,4 +76,3 @@ Only use TunnelMod on systems and networks you are authorized to administer. Do 
 ## License
 
 [MIT](LICENSE)
-
