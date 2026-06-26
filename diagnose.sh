@@ -2,7 +2,7 @@
 set -uo pipefail
 
 if [[ $EUID -ne 0 ]]; then
-  exec sudo "$0" "$@"
+  exec sudo bash "$0" "$@"
 fi
 
 failures=0
@@ -64,4 +64,3 @@ fi
 echo
 echo 'All local checks passed.'
 echo 'If the panel is still unreachable, allow TCP/8443 in the provider firewall or security group and use https://, not http://.'
-
