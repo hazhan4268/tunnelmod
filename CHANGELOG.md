@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.6 — 2026-06-26
+
+- Updated the official online installer to run a clean reinstall flow
+- Existing TunnelMod folders are backed up, removed, and rebuilt before installation
+- Old TunnelMod systemd units, sudoers files, helper binaries, and Nginx panel configs are cleaned before reinstall
+- Source checkout now resets to the latest `origin/main` before installation
+- Final installer health check now requires both TCP/8443 listener and HTTPS `/login` response
+
 ## 1.2.5 — 2026-06-26
 
 - Hardened Nginx renderer include cleanup and listener detection
