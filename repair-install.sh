@@ -34,10 +34,17 @@ systemctl daemon-reload
 systemctl restart tunnel-panel
 systemctl restart nginx
 
+PANEL_TLS_MODE="off"
+set -a
+source /etc/tunnel-panel/panel.env
+set +a
+protocol="http"
+[[ "${PANEL_TLS_MODE:-off}" != "off" ]] && protocol="https"
+
 for _ in {1..20}; do
   if ss -lnt '( sport = :8443 )' 2>/dev/null | grep -q ':8443'; then
-    if curl -kfsS --max-time 3 https://127.0.0.1:8443/login -o /dev/null; then
-      echo "Repair completed. Panel responds on https://127.0.0.1:8443/login"
+    if curl -kfsS --max-time 3 "${protocol}://127.0.0.1:8443/login" -o /dev/null; then
+      echo "Repair completed. Panel responds on ${protocol}://127.0.0.1:8443/login"
       exit 0
     fi
   fi
