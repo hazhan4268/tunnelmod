@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 — 2026-06-26
+
+- Promoted TunnelMod to stable version 1.0.0
+- Added System and Update page inside the web panel
+- Added update check and update apply actions through the protected helper
+- Improved dashboard with system status, version, domain, and quick actions
+- Modernized the panel layout with sidebar navigation and responsive UI
+- Installer updater now copies VERSION into the installed application path
+
 ## 0.1.3-beta — 2026-06-26
 
 - Online installer now asks for an optional panel domain during the first install
