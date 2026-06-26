@@ -55,6 +55,10 @@ chown root:tunnelpanel /etc/tunnel-panel/panel.env
 chmod 640 /etc/tunnel-panel/panel.env
 
 install -o root -g root -m 750 "$SCRIPT_DIR/scripts/tunnel-panel-helper" /usr/local/sbin/tunnel-panel-helper
+install -o root -g root -m 755 "$SCRIPT_DIR/update.sh" /usr/local/sbin/tunnelmod-update
+install -o root -g root -m 755 "$SCRIPT_DIR/diagnose.sh" /usr/local/sbin/tunnelmod-diagnose
+printf '%s\n' "$SCRIPT_DIR" >/etc/tunnel-panel/source.path
+chmod 600 /etc/tunnel-panel/source.path
 cat > /etc/sudoers.d/tunnel-panel <<'EOF'
 tunnelpanel ALL=(root) NOPASSWD: /usr/local/sbin/tunnel-panel-helper *
 EOF
@@ -116,3 +120,4 @@ echo
 echo "نصب کامل شد: https://${PUBLIC_IP}:8443"
 echo "هشدار گواهی Self-Signed در اولین ورود طبیعی است. اثر انگشت گواهی:"
 openssl x509 -in /etc/tunnel-panel/panel.crt -noout -fingerprint -sha256
+echo "بروزرسانی‌های بعدی: sudo tunnelmod-update"
