@@ -45,6 +45,21 @@ if [[ -n "$PANEL_DOMAIN" ]]; then
 "
 fi
 
+backup_nginx_conf_once() {
+  if [[ ! -f "${NGINX_CONF}.tunnelmod.original" ]]; then
+    cp -a "$NGINX_CONF" "${NGINX_CONF}.tunnelmod.original"
+  fi
+}
+
+remove_direct_include_line() {
+  if [[ -f "$NGINX_CONF" ]] && grep -qF "include ${DIRECT_INCLUDE};" "$NGINX_CONF"; then
+    backup_nginx_conf_once
+    grep -vF "include ${DIRECT_INCLUDE};" "$NGINX_CONF" > /tmp/tunnelmod-nginx.conf
+    install -o root -g root -m 644 /tmp/tunnelmod-nginx.conf "$NGINX_CONF"
+    rm -f /tmp/tunnelmod-nginx.conf
+  fi
+}
+
 make_config() {
   local out="$1"
   cat >"$out" <<EOF
@@ -82,39 +97,52 @@ EOF
 }
 
 nginx_loads_panel() {
-  nginx -T 2>/tmp/tunnelmod-nginx-render.log | grep -q "listen 8443 ssl"
+  nginx -T 2>/tmp/tunnelmod-nginx-render.log | grep -Eq 'listen[[:space:]]+(\[::\]:)?8443[[:space:]]+ssl'
+}
+
+try_conf_d() {
+  rm -f "$CONF_D_OUT" "$SITES_ENABLED" "$SITES_AVAILABLE" "$DIRECT_INCLUDE"
+  remove_direct_include_line
+  make_config "$CONF_D_OUT"
+  nginx -t && nginx_loads_panel
+}
+
+try_sites_enabled() {
+  rm -f "$CONF_D_OUT" "$SITES_ENABLED" "$SITES_AVAILABLE" "$DIRECT_INCLUDE"
+  remove_direct_include_line
+  make_config "$SITES_AVAILABLE"
+  ln -sf "$SITES_AVAILABLE" "$SITES_ENABLED"
+  nginx -t && nginx_loads_panel
+}
+
+try_direct_include() {
+  rm -f "$CONF_D_OUT" "$SITES_ENABLED" "$SITES_AVAILABLE"
+  make_config "$DIRECT_INCLUDE"
+  if ! grep -qF "include ${DIRECT_INCLUDE};" "$NGINX_CONF"; then
+    backup_nginx_conf_once
+    awk -v inc="    include /etc/nginx/tunnel-panel.include.conf;" '
+      !done && $0 ~ /^[[:space:]]*http[[:space:]]*\{/ { print; print inc; done=1; next }
+      { print }
+    ' "$NGINX_CONF" > /tmp/tunnelmod-nginx.conf
+    install -o root -g root -m 644 /tmp/tunnelmod-nginx.conf "$NGINX_CONF"
+    rm -f /tmp/tunnelmod-nginx.conf
+  fi
+  nginx -t && nginx_loads_panel
 }
 
 install -d -o root -g root -m 755 /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabled
-rm -f "$CONF_D_OUT" "$SITES_AVAILABLE" "$SITES_ENABLED" "$DIRECT_INCLUDE"
 
-make_config "$CONF_D_OUT"
-if nginx -t && nginx_loads_panel; then
+if try_conf_d; then
   echo "TunnelMod Nginx include mode: conf.d"
   exit 0
 fi
 
-rm -f "$CONF_D_OUT"
-make_config "$SITES_AVAILABLE"
-ln -s "$SITES_AVAILABLE" "$SITES_ENABLED"
-if nginx -t && nginx_loads_panel; then
+if try_sites_enabled; then
   echo "TunnelMod Nginx include mode: sites-enabled"
   exit 0
 fi
 
-rm -f "$SITES_ENABLED" "$SITES_AVAILABLE"
-make_config "$DIRECT_INCLUDE"
-if ! grep -qF "include ${DIRECT_INCLUDE};" "$NGINX_CONF"; then
-  cp -a "$NGINX_CONF" "${NGINX_CONF}.tunnelmod.bak.$(date -u +%Y%m%dT%H%M%SZ)"
-  awk -v inc="    include /etc/nginx/tunnel-panel.include.conf;" '
-    !done && $0 ~ /^[[:space:]]*http[[:space:]]*\{/ { print; print inc; done=1; next }
-    { print }
-  ' "$NGINX_CONF" > /tmp/tunnelmod-nginx.conf
-  install -o root -g root -m 644 /tmp/tunnelmod-nginx.conf "$NGINX_CONF"
-  rm -f /tmp/tunnelmod-nginx.conf
-fi
-
-if nginx -t && nginx_loads_panel; then
+if try_direct_include; then
   echo "TunnelMod Nginx include mode: direct nginx.conf include"
   exit 0
 fi
