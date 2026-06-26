@@ -53,14 +53,6 @@ sudo tunnelmod-update
 
 ---
 
-## 🛠 Repair / تعمیر نصب ناقص
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/repair-install.sh -o /tmp/tunnelmod-repair && sudo bash /tmp/tunnelmod-repair
-```
-
----
-
 ## 🔍 Diagnose / عیب‌یابی
 
 ```bash
@@ -73,9 +65,9 @@ sudo tunnelmod-diagnose
 
 - Default panel mode is HTTP on `8443`.
 - No SSL, domain, IP certificate, or self-signed certificate is required for the default installation.
-- Old SSL Nginx template and outdated install guide were removed.
+- Old SSL Nginx template, separate Persian README, changelog, and repair installer were removed.
 - Nginx renderer supports `PANEL_TLS_MODE=off`.
-- Update and repair checks use the correct panel scheme.
+- Update checks use the correct panel scheme.
 
 ---
 
