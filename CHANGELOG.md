@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.2 — 2026-06-26
+
+- Added repair flow for partial installations where Gunicorn is healthy but Nginx has not loaded the 8443 listener
+- Online installer now continues after the legacy base installer fails at the final Nginx health check and immediately applies the migration/update stage
+- Added `repair-install.sh` for fixing existing half-installed servers
+- Tuned Nginx proxy header hash settings to remove proxy header hash warnings
+
+## 1.2.1 — 2026-06-26
+
+- Moved domain SSL into the initial online installation flow
+- Added installer-level domain validation and final health check
+
 ## 1.2.0 — 2026-06-26
 
 - Added Go-based `tunnelmod-agent` for faster per-tunnel traffic collection
