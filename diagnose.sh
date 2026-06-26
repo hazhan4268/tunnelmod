@@ -33,6 +33,16 @@ else
 fi
 rm -f /tmp/tunnelmod-nginx-test
 
+nginx -T >/tmp/tunnelmod-nginx-dump 2>/tmp/tunnelmod-nginx-dump.err
+if grep -q 'listen 8443 ssl' /tmp/tunnelmod-nginx-dump; then
+  pass 'Nginx loaded TunnelMod 8443 listener config'
+else
+  fail 'Nginx did not load any TunnelMod 8443 listener config'
+  echo 'Loaded Nginx files mentioning tunnel-panel:'
+  grep -n 'tunnel-panel' /tmp/tunnelmod-nginx-dump 2>/dev/null | redact || true
+fi
+rm -f /tmp/tunnelmod-nginx-dump /tmp/tunnelmod-nginx-dump.err
+
 if command -v curl >/dev/null; then
   if curl -fsS --max-time 5 http://127.0.0.1:9080/login -o /dev/null; then
     pass 'Gunicorn responds on the local backend'
@@ -53,6 +63,12 @@ echo 'Listening ports:'
 ss -lntp '( sport = :8443 or sport = :9080 )' 2>&1 | redact
 
 if (( failures > 0 )); then
+  echo
+  echo 'Nginx service status:'
+  systemctl status nginx --no-pager -l 2>&1 | redact | tail -40
+  echo
+  echo 'Recent Nginx logs:'
+  journalctl -u nginx -n 60 --no-pager 2>&1 | redact
   echo
   echo 'Recent panel logs:'
   journalctl -u tunnel-panel -n 80 --no-pager 2>&1 | redact
