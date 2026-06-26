@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}ویرایش تونل | TunnelMod{% endblock %}
+{% block content %}
+<div class="hero"><div><p class="eyebrow">Edit Tunnel</p><h1>ویرایش تونل</h1><p class="muted">پس از ذخیره، قوانین قبلی حذف و تنظیمات جدید دوباره اعمال می‌شود. در صورت خطا، تنظیم قبلی برگردانده می‌شود.</p></div></div>
+<section class="card">
+  <form method="post" class="form-grid tunnel-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>نام<input name="name" required value="{{ tunnel.name }}"></label>
+    <label>سرور مقصد<select name="server_id" required>{% for s in servers %}<option value="{{ s.id }}" {% if s.id == tunnel.server_id %}selected{% endif %}>{{ s.name }} — {{ s.host }}</option>{% endfor %}</select></label>
+    <label>روش<select name="mode" required>
+      <option value="wg_dnat" {% if tunnel.mode == 'wg_dnat' %}selected{% endif %}>WireGuard + DNAT</option>
+      <option value="wg_haproxy" {% if tunnel.mode == 'wg_haproxy' %}selected{% endif %}>WireGuard + HAProxy</option>
+      <option value="direct_dnat" {% if tunnel.mode == 'direct_dnat' %}selected{% endif %}>DNAT مستقیم</option>
+      <option value="direct_haproxy" {% if tunnel.mode == 'direct_haproxy' %}selected{% endif %}>HAProxy مستقیم</option>
+    </select></label>
+    <label>پروتکل<select name="protocol">
+      <option value="tcp" {% if tunnel.protocol == 'tcp' %}selected{% endif %}>TCP</option>
+      <option value="udp" {% if tunnel.protocol == 'udp' %}selected{% endif %}>UDP</option>
+      <option value="both" {% if tunnel.protocol == 'both' %}selected{% endif %}>TCP + UDP</option>
+    </select></label>
+    <label>پورت ورودی<input type="number" name="listen_port" min="1" max="65535" value="{{ tunnel.listen_port }}" required></label>
+    <label>پورت مقصد<input type="number" name="target_port" min="1" max="65535" value="{{ tunnel.target_port }}" required></label>
+    <div class="form-actions full"><a class="button secondary" href="{{ url_for('tunnels') }}">بازگشت</a><button type="submit">ذخیره و اعمال مجدد</button></div>
+  </form>
+</section>
+{% endblock %}
