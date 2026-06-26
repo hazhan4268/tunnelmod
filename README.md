@@ -12,7 +12,7 @@
 
 Manage WireGuard, DNAT, and HAProxy routes from a clean self-hosted web panel.
 
-[![Version](https://img.shields.io/badge/version-0.1.2--beta-f59e0b?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-22c55e?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/hazhan4268/tunnelmod/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/hazhan4268/tunnelmod/actions/workflows/ci.yml)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)](#requirements)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -21,8 +21,8 @@ Manage WireGuard, DNAT, and HAProxy routes from a clean self-hosted web panel.
 
 </div>
 
-> [!WARNING]
-> TunnelMod is beta software. Test it on a disposable VPS before using it in a sensitive environment.
+> [!NOTE]
+> TunnelMod 1.0.0 is the first stable release. Test it on a disposable VPS before using it in a sensitive environment.
 
 ## Overview
 
@@ -34,12 +34,12 @@ TunnelMod turns an Ubuntu server into a centrally managed entry point for forwar
 - WireGuard + DNAT for encrypted TCP and UDP forwarding
 - WireGuard + HAProxy for encrypted TCP proxying with health checks
 - Direct DNAT and direct HAProxy for low-overhead scenarios
-- One-time SSH password enrollment followed by key authentication
 - No storage of destination SSH passwords
 - HTTPS admin panel on port `8443`
 - Robust Nginx config under `/etc/nginx/conf.d/tunnel-panel.conf`
 - Transactional updater with backup and rollback
-- Domain SSL helper powered by Let's Encrypt
+- Update check and update execution from inside the panel
+- Domain SSL activation during the initial online installation
 
 ## Requirements
 
@@ -58,6 +58,8 @@ wget -qO install-online.sh https://raw.githubusercontent.com/hazhan4268/tunnelmo
 sudo bash install-online.sh
 ```
 
+The online installer asks for an optional panel domain at the beginning. Leave it empty for a self-signed certificate, or enter a domain to request Let's Encrypt during the same installation flow.
+
 Classic install:
 
 ```bash
@@ -73,7 +75,7 @@ https://YOUR_SERVER_IP:8443
 
 ## Domain SSL
 
-Create an `A` record for the domain and make sure `80/TCP` and `8443/TCP` are open, then run:
+The online installer can enable domain SSL during the initial installation. To enable or change it later:
 
 ```bash
 sudo tunnelmod-domain panel.example.com admin@example.com
@@ -85,16 +87,17 @@ Domain URL:
 https://panel.example.com:8443
 ```
 
-If certificate issuance fails, fix DNS or firewall access and run the same command again.
+## Updating
 
-## Tunnel modes
+From the panel, open **System and Update**, check GitHub, type `UPDATE`, and run the safe updater when a new version is available.
 
-| Mode | Inter-server encryption | Protocols | Recommended use |
-|---|---:|---|---|
-| **WireGuard + DNAT** | Yes | TCP / UDP | Default private forwarding mode |
-| **WireGuard + HAProxy** | Yes | TCP | TCP proxying with backend health checks |
-| **Direct DNAT** | No | TCP / UDP | Lowest overhead on a trusted network |
-| **Direct HAProxy** | No | TCP | TCP proxying without transport encryption |
+From the command line:
+
+```bash
+sudo tunnelmod-update
+```
+
+The updater creates a private backup, preserves configuration, database, certificates and SSH keys, checks the HTTPS endpoint, and automatically rolls back on failure.
 
 ## Operations
 
@@ -103,22 +106,6 @@ sudo tunnelmod-diagnose
 ```
 
 The diagnostic output automatically redacts IPv4 and IPv6 addresses.
-
-## Updating
-
-```bash
-sudo tunnelmod-update
-```
-
-The updater creates a private backup, preserves configuration, database, certificates and SSH keys, checks the HTTPS endpoint, and automatically rolls back on failure.
-
-For older installations:
-
-```bash
-cd tunnelmod
-git pull --ff-only
-sudo bash update.sh
-```
 
 ## Uninstalling
 
