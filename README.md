@@ -20,25 +20,18 @@
 curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
 ```
 
-The installer opens a terminal UI, backs up and removes any old TunnelMod installation, rebuilds the panel, and gets domain SSL in the same flow when a domain is entered.
+Default panel mode is HTTP on port `8443`. No domain, SSL, IP certificate, or self-signed certificate is required.
 
 | Need | Port |
 |---|---:|
 | Panel | `8443/TCP` |
-| Domain SSL | `80/TCP` |
 
 ---
 
 ## 🌐 Panel URL
 
 ```text
-https://YOUR_SERVER_IP:8443
-```
-
-With domain SSL:
-
-```text
-https://panel.example.com:8443
+http://YOUR_SERVER_IP:8443
 ```
 
 ---
