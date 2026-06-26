@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2-beta — 2026-06-26
+
+- Moved generated Nginx panel configuration to `/etc/nginx/conf.d/tunnel-panel.conf`
+- Added reusable Nginx renderer for self-signed and domain certificates
+- Added domain SSL helper command
+- Updated README installation commands
+
 ## 0.1.1-beta — 2026-06-26
 
 - Added transactional `sudo tunnelmod-update` with backup, health check, and rollback
