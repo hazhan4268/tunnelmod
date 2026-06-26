@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-06-26
+
+- Added Go-based `tunnelmod-agent` for faster per-tunnel traffic collection
+- Helper now prefers the Go agent for traffic counters and falls back to Python automatically
+- Added Go module and CI build validation for the agent
+- Update workflow now builds and installs the Go agent at `/usr/local/sbin/tunnelmod-agent`
+- Added agent installer script with graceful fallback if the build fails
+
 ## 1.1.0 — 2026-06-26
 
 - Added per-tunnel inbound and outbound traffic counters
