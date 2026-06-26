@@ -1,25 +1,36 @@
 {% extends "base.html" %}
-{% block title %}داشبورد | پنل تونل{% endblock %}
+{% block title %}داشبورد | TunnelMod{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>داشبورد</h1><p class="muted">نمای کلی زیرساخت</p></div></div>
+<div class="hero">
+  <div><p class="eyebrow">TunnelMod 1.0.0 Stable</p><h1>داشبورد مدیریت تونل</h1><p class="muted">نمای سریع از سرورها، تونل‌ها و وضعیت نصب فعلی.</p></div>
+  <div class="hero-actions"><a class="button" href="{{ url_for('tunnels') }}">ساخت تونل</a><a class="button secondary" href="{{ url_for('system') }}">بررسی بروزرسانی</a></div>
+</div>
 <section class="stats">
   <div class="stat card"><strong>{{ stats.servers }}</strong><span>کل سرورها</span></div>
   <div class="stat card"><strong>{{ stats.online }}</strong><span>سرور آنلاین</span></div>
   <div class="stat card"><strong>{{ stats.tunnels }}</strong><span>تونل فعال</span></div>
-  <div class="stat card"><strong>{{ stats.errors }}</strong><span>خطا</span></div>
+  <div class="stat card"><strong>{{ stats.errors }}</strong><span>خطای فعال</span></div>
 </section>
-<section class="card">
-  <div class="section-title"><h2>آخرین تونل‌ها</h2><a class="button small" href="{{ url_for('tunnels') }}">مدیریت تونل‌ها</a></div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>نام</th><th>سرور</th><th>روش</th><th>مسیر</th><th>وضعیت</th></tr></thead>
-    <tbody>
-    {% for t in tunnels %}
-      <tr><td>{{ t.name }}</td><td>{{ t.server_name }}</td><td><code>{{ t.mode }}</code></td>
-      <td><span dir="ltr">:{{ t.listen_port }} → {{ t.host }}:{{ t.target_port }}</span></td>
-      <td><span class="badge {{ t.status }}">{{ t.status }}</span></td></tr>
-    {% else %}<tr><td colspan="5" class="empty">هنوز تونلی ساخته نشده است.</td></tr>{% endfor %}
-    </tbody>
-  </table></div>
+<section class="grid two">
+  <div class="card">
+    <div class="section-title"><h2>آخرین تونل‌ها</h2><a class="button small" href="{{ url_for('tunnels') }}">مدیریت تونل‌ها</a></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>نام</th><th>سرور</th><th>روش</th><th>مسیر</th><th>وضعیت</th></tr></thead>
+      <tbody>
+      {% for t in tunnels %}
+        <tr><td>{{ t.name }}</td><td>{{ t.server_name }}</td><td><code>{{ t.mode }}</code></td>
+        <td><span dir="ltr">:{{ t.listen_port }} → {{ t.host }}:{{ t.target_port }}</span></td>
+        <td><span class="badge {{ t.status }}">{{ t.status }}</span></td></tr>
+      {% else %}<tr><td colspan="5" class="empty">هنوز تونلی ساخته نشده است.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card health-card">
+    <h2>وضعیت سیستم</h2>
+    <div class="kv"><span>نسخه نصب‌شده</span><strong dir="ltr">{{ system.version }}</strong></div>
+    <div class="kv"><span>IP پنل</span><strong dir="ltr">{{ system.public_ip }}</strong></div>
+    <div class="kv"><span>دامنه</span><strong dir="ltr">{{ system.domain }}</strong></div>
+    <a class="button full" href="{{ url_for('system', check=1) }}">بررسی آپدیت از GitHub</a>
+  </div>
 </section>
 {% endblock %}
-
