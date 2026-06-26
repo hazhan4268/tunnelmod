@@ -1,3 +1,3 @@
 module github.com/hazhan4268/tunnelmod
 
-go 1.20
+go 1.13
