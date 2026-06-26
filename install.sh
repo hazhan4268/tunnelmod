@@ -27,7 +27,7 @@ read -rsp "تکرار رمز: " ADMIN_PASSWORD_2; echo
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y python3 python3-venv python3-pip nginx haproxy wireguard iptables iptables-persistent openssl sudo
+apt-get install -y python3 python3-venv python3-pip nginx haproxy wireguard iptables iptables-persistent openssl sudo curl
 
 id tunnelpanel >/dev/null 2>&1 || useradd --system --home /var/lib/tunnel-panel --shell /usr/sbin/nologin tunnelpanel
 install -d -o tunnelpanel -g tunnelpanel -m 750 /var/lib/tunnel-panel
@@ -83,11 +83,33 @@ PANEL_INITIAL_PASSWORD="$ADMIN_PASSWORD" /opt/tunnel-panel/venv/bin/python -c 'f
 chown -R tunnelpanel:tunnelpanel /var/lib/tunnel-panel
 unset ADMIN_PASSWORD ADMIN_PASSWORD_2 PANEL_INITIAL_PASSWORD
 
-nginx -t
+if ! nginx -t; then
+  echo "خطا در تنظیمات Nginx" >&2
+  bash "$SCRIPT_DIR/diagnose.sh" || true
+  exit 1
+fi
 systemctl daemon-reload
-systemctl enable --now tunnel-panel nginx
+if ! systemctl enable --now tunnel-panel nginx; then
+  echo "خطا در اجرای سرویس‌های پنل" >&2
+  bash "$SCRIPT_DIR/diagnose.sh" || true
+  exit 1
+fi
 if command -v ufw >/dev/null && ufw status | grep -q '^Status: active'; then
   ufw allow 8443/tcp >/dev/null
+fi
+
+healthy=0
+for _attempt in {1..10}; do
+  if curl -kfsS --max-time 3 https://127.0.0.1:8443/login -o /dev/null; then
+    healthy=1
+    break
+  fi
+  sleep 1
+done
+if [[ $healthy -ne 1 ]]; then
+  echo "خطا: پنل پس از نصب پاسخ نداد. خروجی عیب‌یابی:" >&2
+  bash "$SCRIPT_DIR/diagnose.sh" || true
+  exit 1
 fi
 
 echo
