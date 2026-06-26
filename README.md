@@ -122,6 +122,12 @@ Example HTTPS mapping:
 Check the web application and network state:
 
 ```bash
+sudo bash diagnose.sh
+```
+
+The diagnostic output automatically redacts IPv4 and IPv6 addresses and can be shared when requesting support. Individual commands are also available:
+
+```bash
 sudo systemctl status tunnel-panel --no-pager
 sudo journalctl -u tunnel-panel -n 100 --no-pager
 sudo wg show
@@ -165,6 +171,8 @@ The uninstaller deliberately leaves active iptables rules and `/var/lib/tunnel-p
 ## Security
 
 Use TunnelMod only on systems and networks you are authorized to administer. Never commit panel databases, private keys, passwords, `/etc/tunnel-panel`, `/var/lib/tunnel-panel`, or real server backups.
+
+Public and destination addresses entered during installation are stored only on the installed server. The repository does not contain or upload them.
 
 Report vulnerabilities privately using GitHub's **Security → Report a vulnerability** feature. See [SECURITY.md](SECURITY.md) for details.
 
