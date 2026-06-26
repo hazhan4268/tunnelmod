@@ -4,7 +4,7 @@
 
 **پنل تونل Ubuntu برای WireGuard، DNAT و HAProxy**
 
-![نسخه](https://img.shields.io/badge/version-1.2.4-22c55e?style=flat-square)
+![نسخه](https://img.shields.io/badge/version-1.2.6-22c55e?style=flat-square)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04+-E95420?style=flat-square&logo=ubuntu&logoColor=white)
 ![مجوز](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)
 
@@ -20,7 +20,7 @@
 curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
 ```
 
-نصب‌کننده محیط گرافیکی ترمینال را باز می‌کند. همان‌جا دامنه را وارد کن تا SSL هم در همان روند نصب گرفته شود.
+نصب‌کننده محیط گرافیکی ترمینال را باز می‌کند، نصب قبلی TunnelMod را Backup می‌گیرد و پاک می‌کند، پنل را از نو می‌سازد و اگر دامنه وارد شود SSL را در همان روند نصب می‌گیرد.
 
 | نیاز | پورت |
 |---|---:|
