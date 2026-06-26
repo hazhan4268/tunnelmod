@@ -21,6 +21,5 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m compileall -q tunnel_panel
-      - run: bash -n install.sh uninstall.sh scripts/tunnel-panel-helper
+      - run: bash -n install.sh update.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper
       - run: python -m unittest discover -s tests -v
-
