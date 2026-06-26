@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import subprocess
 from datetime import timedelta
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -10,6 +11,33 @@ from .security import (check_csrf, csrf_token, login_required, valid_ip,
                        valid_name, valid_port)
 
 
+def run_helper(app, *args, timeout=45):
+    cmd = ["sudo", app.config["HELPER"], *args]
+    proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+    if proc.returncode != 0:
+        raise RuntimeError((proc.stderr or proc.stdout or "helper failed").strip()[:1200])
+    return proc.stdout.strip()
+
+
+def parse_kv(text):
+    data = {}
+    for line in text.splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            data[key.strip()] = value.strip()
+    return data
+
+
+def installed_version():
+    for path in ("/opt/tunnel-panel/VERSION", "/etc/tunnel-panel/VERSION"):
+        try:
+            with open(path, encoding="utf-8") as file:
+                return file.read().strip()
+        except OSError:
+            pass
+    return "unknown"
+
+
 def create_app():
     app = Flask(__name__)
     app.config.update(
@@ -18,6 +46,7 @@ def create_app():
         SSH_KEY=os.environ.get("PANEL_SSH_KEY", "/var/lib/tunnel-panel/id_ed25519"),
         HELPER=os.environ.get("PANEL_HELPER", "/usr/local/sbin/tunnel-panel-helper"),
         PUBLIC_IP=os.environ.get("PANEL_PUBLIC_IP", "127.0.0.1"),
+        PANEL_DOMAIN=os.environ.get("PANEL_DOMAIN", ""),
         HAPROXY_RENDER=os.environ.get("PANEL_HAPROXY_RENDER", "/var/lib/tunnel-panel/haproxy.cfg"),
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
@@ -75,7 +104,47 @@ def create_app():
         tunnels = db.execute(
             "SELECT t.*,s.name server_name,s.host FROM tunnels t JOIN servers s ON s.id=t.server_id ORDER BY t.id DESC LIMIT 10"
         ).fetchall()
-        return render_template("dashboard.html", stats=stats, tunnels=tunnels)
+        system = {
+            "version": installed_version(),
+            "public_ip": app.config["PUBLIC_IP"],
+            "domain": app.config["PANEL_DOMAIN"] or "تنظیم نشده",
+        }
+        return render_template("dashboard.html", stats=stats, tunnels=tunnels, system=system)
+
+    @app.route("/system")
+    @login_required
+    def system():
+        update_info = None
+        if request.args.get("check") == "1":
+            try:
+                update_info = parse_kv(run_helper(app, "update-check", timeout=60))
+                flash("بررسی بروزرسانی انجام شد", "success")
+            except Exception as exc:
+                flash(f"بررسی بروزرسانی ناموفق بود: {exc}", "error")
+        system_info = {
+            "version": installed_version(),
+            "public_ip": app.config["PUBLIC_IP"],
+            "domain": app.config["PANEL_DOMAIN"] or "تنظیم نشده",
+            "reserved_ports": ", ".join(str(p) for p in sorted(app.config["RESERVED_PORTS"])),
+        }
+        return render_template("system.html", system=system_info, update=update_info)
+
+    @app.post("/system/update")
+    @login_required
+    def system_update():
+        check_csrf()
+        confirm = request.form.get("confirm") == "UPDATE"
+        if not confirm:
+            flash("برای اجرای بروزرسانی عبارت UPDATE را وارد کنید", "error")
+            return redirect(url_for("system", check=1))
+        try:
+            output = run_helper(app, "update-apply", timeout=900)
+            flash("بروزرسانی انجام شد. سرویس پنل سالم است.", "success")
+            if output:
+                flash(output[-900:], "success")
+        except Exception as exc:
+            flash(f"بروزرسانی ناموفق بود و در صورت امکان Rollback شده است: {exc}", "error")
+        return redirect(url_for("system", check=1))
 
     @app.route("/servers", methods=["GET", "POST"])
     @login_required
@@ -162,7 +231,6 @@ def create_app():
                 target = valid_port(request.form.get("target_port"), "پورت مقصد")
                 if listen in app.config["RESERVED_PORTS"]:
                     raise ValueError("این پورت برای پنل یا اتصال SSH رزرو شده است")
-                # Check overlap, including 'both'.
                 conflict = db.execute(
                     "SELECT id FROM tunnels WHERE enabled=1 AND listen_port=? "
                     "AND (protocol=? OR protocol='both' OR ?='both')", (listen, protocol, protocol)
