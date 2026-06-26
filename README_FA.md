@@ -122,6 +122,12 @@ https://IP-SERVER:8443
 بررسی سرویس پنل و وضعیت شبکه:
 
 ```bash
+sudo bash diagnose.sh
+```
+
+خروجی این ابزار، IPv4 و IPv6 را خودکار مخفی می‌کند و برای ارسال به پشتیبانی مناسب است. دستورات جداگانه نیز در دسترس‌اند:
+
+```bash
 sudo systemctl status tunnel-panel --no-pager
 sudo journalctl -u tunnel-panel -n 100 --no-pager
 sudo wg show
@@ -165,6 +171,8 @@ sudo ./uninstall.sh
 ## امنیت
 
 از TunnelMod فقط روی سرورها و شبکه‌هایی استفاده کنید که اجازه مدیریت آن‌ها را دارید. دیتابیس پنل، کلیدهای خصوصی، رمزها، مسیرهای `/etc/tunnel-panel` و `/var/lib/tunnel-panel` یا نسخه پشتیبان واقعی سرورها را در GitHub قرار ندهید.
+
+IP عمومی و IP مقصدی که هنگام نصب یا کار با پنل وارد می‌شوند فقط روی همان سرور نصب‌شده ذخیره خواهند شد و وارد مخزن GitHub نمی‌شوند.
 
 آسیب‌پذیری‌ها را از بخش **Security → Report a vulnerability** به‌صورت خصوصی گزارش کنید. جزئیات در [SECURITY.md](SECURITY.md) قرار دارد.
 
