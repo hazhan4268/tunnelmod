@@ -4,7 +4,7 @@
 
 **Ubuntu tunnel panel for WireGuard, DNAT and HAProxy**
 
-![Version](https://img.shields.io/badge/version-1.2.4-22c55e?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.2.6-22c55e?style=flat-square)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04+-E95420?style=flat-square&logo=ubuntu&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)
 
@@ -20,7 +20,7 @@
 curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
 ```
 
-The installer opens a terminal UI. Enter your domain during installation to get SSL in the same flow.
+The installer opens a terminal UI, backs up and removes any old TunnelMod installation, rebuilds the panel, and gets domain SSL in the same flow when a domain is entered.
 
 | Need | Port |
 |---|---:|
