@@ -9,9 +9,8 @@ Contributions are welcome through GitHub issues and pull requests.
 
 ```bash
 python3 -m compileall -q tunnel_panel
-bash -n install.sh uninstall.sh scripts/tunnel-panel-helper
+bash -n install.sh update.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper
 python3 -m unittest discover -s tests -v
 ```
 
 Security vulnerabilities must be reported privately as described in `SECURITY.md`.
-
