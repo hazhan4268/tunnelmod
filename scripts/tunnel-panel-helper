@@ -82,6 +82,31 @@ haproxy_stop(){
   systemctl disable --now tunnel-panel-haproxy 2>/dev/null || true
 }
 
+update_check(){
+  local source_file="/etc/tunnel-panel/source.path" source_dir local_sha remote_sha local_version remote_version status
+  [[ -r "$source_file" ]] || die "source path missing"
+  source_dir="$(<"$source_file")"
+  [[ -d "$source_dir/.git" ]] || die "source repo missing"
+  git -C "$source_dir" fetch --prune origin main >/dev/null
+  local_sha="$(git -C "$source_dir" rev-parse HEAD)"
+  remote_sha="$(git -C "$source_dir" rev-parse origin/main)"
+  local_version="$(cat /opt/tunnel-panel/VERSION 2>/dev/null || cat "$source_dir/VERSION" 2>/dev/null || echo unknown)"
+  remote_version="$(git -C "$source_dir" show origin/main:VERSION 2>/dev/null || echo unknown)"
+  if [[ "$local_sha" == "$remote_sha" ]]; then
+    status="current"
+  elif git -C "$source_dir" merge-base --is-ancestor "$local_sha" "$remote_sha"; then
+    status="available"
+  else
+    status="manual"
+  fi
+  printf 'status=%s\nlocal_sha=%s\nremote_sha=%s\nlocal_version=%s\nremote_version=%s\n' "$status" "$local_sha" "$remote_sha" "$local_version" "$remote_version"
+}
+
+update_apply(){
+  [[ -x /usr/local/sbin/tunnelmod-update ]] || die "updater missing"
+  flock -w 5 /var/lock/tunnelmod-update.lock /usr/local/sbin/tunnelmod-update
+}
+
 case "${1:-}" in
   forward-add) forward_add "$@" ;;
   forward-del) forward_del "$@" ;;
@@ -89,5 +114,7 @@ case "${1:-}" in
   wg-down) wg_down "$@" ;;
   haproxy-apply) haproxy_apply "$@" ;;
   haproxy-stop) haproxy_stop "$@" ;;
+  update-check) update_check "$@" ;;
+  update-apply) update_apply "$@" ;;
   *) die "unknown action" ;;
 esac
