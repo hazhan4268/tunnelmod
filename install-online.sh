@@ -7,6 +7,8 @@ fi
 
 REPO_URL="${TUNNELMOD_REPO_URL:-https://github.com/hazhan4268/tunnelmod.git}"
 SOURCE_DIR="${TUNNELMOD_SOURCE_DIR:-/opt/tunnelmod-src}"
+DOMAIN="${PANEL_DOMAIN:-}"
+EMAIL="${LETSENCRYPT_EMAIL:-${PANEL_LETSENCRYPT_EMAIL:-}}"
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
@@ -22,4 +24,8 @@ else
 fi
 
 cd "$SOURCE_DIR"
-exec bash ./install.sh "$@"
+bash ./install.sh "$@"
+env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash ./update.sh
+if [[ -n "$DOMAIN" ]]; then
+  bash ./domain.sh "$DOMAIN" "$EMAIL"
+fi
