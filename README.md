@@ -65,7 +65,8 @@ sudo tunnelmod-diagnose
 
 - Default panel mode is HTTP on `8443`.
 - No SSL, domain, IP certificate, or self-signed certificate is required for the default installation.
-- Old SSL Nginx template, separate Persian README, changelog, and repair installer were removed.
+- Separate Persian README, changelog, and repair installer were merged or removed.
+- A small HTTP Nginx compatibility template remains only to keep the legacy base installer from breaking before the online updater applies the final renderer.
 - Nginx renderer supports `PANEL_TLS_MODE=off`.
 - Update checks use the correct panel scheme.
 
