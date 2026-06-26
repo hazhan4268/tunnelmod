@@ -5,7 +5,7 @@
 **Ubuntu tunnel panel for WireGuard, DNAT and HAProxy**  
 **پنل تونل Ubuntu برای WireGuard، DNAT و HAProxy**
 
-![Version](https://img.shields.io/badge/version-1.2.6-22c55e?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.2.7-22c55e?style=flat-square)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04+-E95420?style=flat-square&logo=ubuntu&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)
 
