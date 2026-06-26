@@ -7,6 +7,7 @@ fi
 
 REPO_URL="${TUNNELMOD_REPO_URL:-https://github.com/hazhan4268/tunnelmod.git}"
 SOURCE_DIR="${TUNNELMOD_SOURCE_DIR:-/opt/tunnelmod-src}"
+ENV_FILE="/etc/tunnel-panel/panel.env"
 DOMAIN="${PANEL_DOMAIN:-}"
 EMAIL="${LETSENCRYPT_EMAIL:-${PANEL_LETSENCRYPT_EMAIL:-}}"
 
@@ -22,6 +23,16 @@ if [[ -n "$DOMAIN" ]]; then
     read -rp "Email for Let's Encrypt notices (optional): " EMAIL
   fi
 fi
+
+set_env_value() {
+  local key="$1" value="$2" tmp
+  [[ -f "$ENV_FILE" ]] || return 0
+  tmp="$(mktemp)"
+  grep -v "^${key}=" "$ENV_FILE" >"$tmp" || true
+  printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  install -o root -g tunnelpanel -m 640 "$tmp" "$ENV_FILE"
+  rm -f "$tmp"
+}
 
 export PANEL_DOMAIN="$DOMAIN"
 export PANEL_LETSENCRYPT_EMAIL="$EMAIL"
@@ -42,8 +53,21 @@ fi
 
 cd "$SOURCE_DIR"
 
-# Base install first, then update stage installs the latest helper, renderer and Go agent.
+# install.sh may fail on older releases before the Nginx renderer is installed.
+# Keep the partial install, then immediately migrate it through update.sh.
+set +e
 bash ./install.sh "$@"
+base_status=$?
+set -e
+if [[ $base_status -ne 0 ]]; then
+  echo "Base installer stopped before final health check; applying integrated installer migration..." >&2
+fi
+
+if [[ -n "$DOMAIN" ]]; then
+  set_env_value PANEL_DOMAIN "$DOMAIN"
+  set_env_value PANEL_LETSENCRYPT_EMAIL "$EMAIL"
+fi
+
 env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash ./update.sh
 
 # Domain SSL is part of the initial installer flow, not a separate user step.
