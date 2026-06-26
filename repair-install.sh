@@ -22,23 +22,24 @@ else
 fi
 
 cd "$SOURCE_DIR"
-if [[ -r /etc/tunnel-panel/panel.env ]]; then
-  env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash ./update.sh
-else
-  echo "TunnelMod is not partially installed. Run the normal installer instead:" >&2
-  echo "sudo bash install-online.sh" >&2
+[[ -r /etc/tunnel-panel/panel.env ]] || {
+  echo "TunnelMod is not partially installed. Run the normal installer instead." >&2
   exit 1
-fi
+}
 
+env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash ./update.sh
 /usr/local/sbin/tunnelmod-render-nginx /etc/tunnel-panel/panel.env
 nginx -t
-systemctl restart nginx
+systemctl daemon-reload
 systemctl restart tunnel-panel
+systemctl restart nginx
 
-for _ in {1..15}; do
-  if curl -kfsS --max-time 3 https://127.0.0.1:8443/login -o /dev/null; then
-    echo "Repair completed. Panel responds on https://127.0.0.1:8443/login"
-    exit 0
+for _ in {1..20}; do
+  if ss -lnt '( sport = :8443 )' 2>/dev/null | grep -q ':8443'; then
+    if curl -kfsS --max-time 3 https://127.0.0.1:8443/login -o /dev/null; then
+      echo "Repair completed. Panel responds on https://127.0.0.1:8443/login"
+      exit 0
+    fi
   fi
   sleep 1
 done
