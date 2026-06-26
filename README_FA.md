@@ -12,7 +12,7 @@
 
 مدیریت WireGuard، ‏DNAT و HAProxy از طریق یک پنل تحت وب ساده و مستقل
 
-[![نسخه](https://img.shields.io/badge/version-0.1.0--beta-f59e0b?style=flat-square)](CHANGELOG.md)
+[![نسخه](https://img.shields.io/badge/version-0.1.1--beta-f59e0b?style=flat-square)](CHANGELOG.md)
 [![تست‌ها](https://img.shields.io/github/actions/workflow/status/hazhan4268/tunnelmod/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/hazhan4268/tunnelmod/actions/workflows/ci.yml)
 [![اوبونتو](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)](#پیشنیازها)
 [![مجوز](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -146,11 +146,21 @@ sudo cp -a /etc/tunnel-panel /root/tunnel-panel-config-backup
 
 ## به‌روزرسانی
 
-TunnelMod هنوز دستور مهاجرت اختصاصی ندارد. پیش از به‌روزرسانی:
+نصب‌های جدید دارای به‌روزرسان امن و خودکار هستند:
 
-1. از `/var/lib/tunnel-panel` و `/etc/tunnel-panel` نسخه پشتیبان بگیرید.
-2. فایل [CHANGELOG.md](CHANGELOG.md) را مطالعه کنید.
-3. نسخه مدنظر را دریافت و تغییرات نصب‌کننده را بررسی کنید.
+```bash
+sudo tunnelmod-update
+```
+
+این فرمان فقط به‌روزرسانی Fast-forward را از Git دریافت می‌کند، نسخه پشتیبان خصوصی می‌سازد، تنظیمات، دیتابیس، گواهی‌ها و کلیدهای SSH را حفظ می‌کند و در پایان سلامت HTTPS پنل را می‌سنجد. در صورت خطا، نسخه نصب‌شده قبلی خودکار بازیابی می‌شود.
+
+اگر پنل را پیش از اضافه‌شدن این فرمان نصب کرده‌اید، یک‌بار اجرا کنید:
+
+```bash
+cd tunnelmod
+git pull --ff-only
+sudo bash update.sh
+```
 
 ## حذف پنل
 
