@@ -2,11 +2,14 @@
 
 ## 1.2.6 — 2026-06-26
 
-- Updated the official online installer to run a clean reinstall flow
-- Existing TunnelMod folders are backed up, removed, and rebuilt before installation
-- Old TunnelMod systemd units, sudoers files, helper binaries, and Nginx panel configs are cleaned before reinstall
-- Source checkout now resets to the latest `origin/main` before installation
-- Final installer health check now requires both TCP/8443 listener and HTTPS `/login` response
+- Cleaned obsolete installer and documentation files
+- Removed the legacy static Nginx SSL template
+- Updated README paths to the current HTTP panel URL
+- Default panel mode is HTTP on port `8443`
+- No domain, SSL, IP certificate, or self-signed certificate is required for the default panel
+- Renderer supports HTTP mode through `PANEL_TLS_MODE=off`
+- Panel cookies now work correctly in HTTP mode
+- Update and repair health checks respect the selected panel scheme
 
 ## 1.2.5 — 2026-06-26
 
