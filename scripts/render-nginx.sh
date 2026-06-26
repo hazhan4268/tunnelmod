@@ -44,6 +44,9 @@ fi
 install -d -o root -g root -m 755 /etc/nginx/conf.d
 rm -f /etc/nginx/sites-enabled/tunnel-panel
 cat >"$OUT" <<EOF
+proxy_headers_hash_max_size 1024;
+proxy_headers_hash_bucket_size 128;
+
 ${HTTP_BLOCK}
 limit_req_zone \$binary_remote_addr zone=panel_login:10m rate=10r/m;
 server {
