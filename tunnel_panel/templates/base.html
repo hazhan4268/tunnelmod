@@ -3,30 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}پنل تونل{% endblock %}</title>
+  <title>{% block title %}TunnelMod{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="{{ url_for('dashboard') }}">Tunnel Panel</a>
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('dashboard') }}"><span>TM</span><strong>TunnelMod</strong><small>Stable Panel</small></a>
     {% if session.get('authenticated') %}
-    <nav>
+    <nav class="side-nav">
       <a href="{{ url_for('dashboard') }}">داشبورد</a>
       <a href="{{ url_for('servers') }}">سرورها</a>
       <a href="{{ url_for('tunnels') }}">تونل‌ها</a>
-      <form method="post" action="{{ url_for('logout') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="link" type="submit">خروج</button>
-      </form>
+      <a href="{{ url_for('system') }}">سیستم و بروزرسانی</a>
     </nav>
+    <form class="logout" method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="ghost" type="submit">خروج امن</button>
+    </form>
     {% endif %}
-  </header>
-  <main class="container">
-    {% for category, message in get_flashed_messages(with_categories=true) %}
-      <div class="alert {{ category }}">{{ message }}</div>
-    {% endfor %}
-    {% block content %}{% endblock %}
+  </aside>
+  <main class="main">
+    <header class="mobile-top"><a class="mini-brand" href="{{ url_for('dashboard') }}">TunnelMod</a></header>
+    <section class="container">
+      {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="alert {{ category }}">{{ message }}</div>
+      {% endfor %}
+      {% block content %}{% endblock %}
+    </section>
   </main>
 </body>
 </html>
-
