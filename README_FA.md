@@ -12,7 +12,7 @@
 
 مدیریت WireGuard، ‏DNAT و HAProxy از طریق یک پنل تحت وب ساده و مستقل
 
-[![نسخه](https://img.shields.io/badge/version-0.1.3--beta-f59e0b?style=flat-square)](CHANGELOG.md)
+[![نسخه](https://img.shields.io/badge/version-1.0.0-22c55e?style=flat-square)](CHANGELOG.md)
 [![تست‌ها](https://img.shields.io/github/actions/workflow/status/hazhan4268/tunnelmod/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/hazhan4268/tunnelmod/actions/workflows/ci.yml)
 [![اوبونتو](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)](#پیشنیازها)
 [![مجوز](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -21,8 +21,8 @@
 
 </div>
 
-> [!WARNING]
-> TunnelMod نسخه آزمایشی است. پیش از استفاده در محیط حساس، ابتدا آن را روی یک VPS آزمایشی بررسی کنید.
+> [!NOTE]
+> TunnelMod 1.0.0 نسخه Stable است؛ همچنان پیش از استفاده در محیط حساس، روی VPS آزمایشی بررسی شود.
 
 ## معرفی
 
@@ -38,6 +38,7 @@ TunnelMod یک سرور Ubuntu را به نقطه ورودی مرکزی برای
 - پنل مدیریتی HTTPS روی پورت `8443`
 - کانفیگ پایدار Nginx در مسیر استاندارد `/etc/nginx/conf.d/tunnel-panel.conf`
 - دستور به‌روزرسانی امن با Backup و Rollback
+- بررسی و اجرای بروزرسانی از داخل پنل
 - فعال‌سازی SSL دامنه در همان نصب اولیه
 
 ## پیش‌نیازها
@@ -86,16 +87,17 @@ sudo tunnelmod-domain panel.example.com admin@example.com
 https://panel.example.com:8443
 ```
 
-اگر صدور گواهی موفق نشد، DNS و فایروال را اصلاح کنید و دوباره همین دستور را اجرا کنید.
+## به‌روزرسانی
 
-## روش‌های تونل
+از داخل پنل: وارد بخش **سیستم و بروزرسانی** شوید، ابتدا «بررسی وجود آپدیت» را بزنید و در صورت وجود نسخه جدید، عبارت `UPDATE` را برای اجرا وارد کنید.
 
-| روش | رمزنگاری بین سرورها | پروتکل | کاربرد پیشنهادی |
-|---|---:|---|---|
-| **WireGuard + DNAT** | دارد | TCP / UDP | انتخاب پیش‌فرض برای انتقال خصوصی و کم‌سربار |
-| **WireGuard + HAProxy** | دارد | TCP | پروکسی TCP رمزنگاری‌شده همراه با Health Check |
-| **DNAT مستقیم** | ندارد | TCP / UDP | کمترین سربار در شبکه‌ای که از قبل قابل‌اعتماد است |
-| **HAProxy مستقیم** | ندارد | TCP | پروکسی TCP بدون نیاز به رمزنگاری مسیر |
+از خط فرمان:
+
+```bash
+sudo tunnelmod-update
+```
+
+این فرمان نسخه پشتیبان خصوصی می‌سازد، تنظیمات، دیتابیس، گواهی‌ها و کلیدهای SSH را حفظ می‌کند و در صورت خطا نسخه قبلی را خودکار برمی‌گرداند.
 
 ## مدیریت و عیب‌یابی
 
@@ -104,22 +106,6 @@ sudo tunnelmod-diagnose
 ```
 
 خروجی این ابزار، IPv4 و IPv6 را خودکار مخفی می‌کند و برای ارسال به پشتیبانی مناسب است.
-
-## به‌روزرسانی
-
-```bash
-sudo tunnelmod-update
-```
-
-این فرمان نسخه پشتیبان خصوصی می‌سازد، تنظیمات، دیتابیس، گواهی‌ها و کلیدهای SSH را حفظ می‌کند و در صورت خطا نسخه قبلی را خودکار برمی‌گرداند.
-
-اگر پنل را قبل از اضافه‌شدن این فرمان نصب کرده‌اید:
-
-```bash
-cd tunnelmod
-git pull --ff-only
-sudo bash update.sh
-```
 
 ## حذف پنل
 
