@@ -16,7 +16,7 @@
 ## ⚡ Install / نصب
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
+rm -f /tmp/tunnelmod-install.sh && curl -fsSL --retry 3 --connect-timeout 10 https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install.sh && sudo -E bash /tmp/tunnelmod-install.sh
 ```
 
 Default panel mode is HTTP on port `8443`. No domain, SSL, IP certificate, or self-signed certificate is required.
@@ -69,6 +69,7 @@ sudo tunnelmod-diagnose
 - A small HTTP Nginx compatibility template remains only to keep the legacy base installer from breaking before the online updater applies the final renderer.
 - Nginx renderer supports `PANEL_TLS_MODE=off`.
 - Update checks use the correct panel scheme.
+- Install command removes stale temp files, retries download, and keeps interactive input working.
 
 ---
 
