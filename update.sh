@@ -49,7 +49,7 @@ if [[ "${TUNNELMOD_UPDATE_APPLY:-0}" != 1 ]]; then
   exec env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash "$SOURCE_DIR/update.sh"
 fi
 
-bash -n install.sh update.sh domain.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper scripts/render-nginx.sh
+bash -n install.sh update.sh domain.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper scripts/render-nginx.sh scripts/install-agent.sh
 python3 -m compileall -q tunnel_panel tests
 if ! command -v curl >/dev/null; then
   apt-get update
@@ -68,6 +68,7 @@ install -d -o root -g root -m 700 "$backup"
 [[ -f /usr/local/sbin/tunnelmod-diagnose ]] && cp -a /usr/local/sbin/tunnelmod-diagnose "$backup/tunnelmod-diagnose"
 [[ -f /usr/local/sbin/tunnelmod-domain ]] && cp -a /usr/local/sbin/tunnelmod-domain "$backup/tunnelmod-domain"
 [[ -f /usr/local/sbin/tunnelmod-render-nginx ]] && cp -a /usr/local/sbin/tunnelmod-render-nginx "$backup/tunnelmod-render-nginx"
+[[ -f /usr/local/sbin/tunnelmod-agent ]] && cp -a /usr/local/sbin/tunnelmod-agent "$backup/tunnelmod-agent"
 [[ -f /etc/systemd/system/tunnel-panel.service ]] && cp -a /etc/systemd/system/tunnel-panel.service "$backup/tunnel-panel.service"
 [[ -f /etc/systemd/system/tunnel-panel-haproxy.service ]] && cp -a /etc/systemd/system/tunnel-panel-haproxy.service "$backup/tunnel-panel-haproxy.service"
 [[ -f /etc/nginx/conf.d/tunnel-panel.conf ]] && cp -a /etc/nginx/conf.d/tunnel-panel.conf "$backup/nginx-tunnel-panel.conf"
@@ -86,6 +87,7 @@ rollback() {
     [[ -f "$backup/tunnelmod-diagnose" ]] && cp -a "$backup/tunnelmod-diagnose" /usr/local/sbin/tunnelmod-diagnose
     [[ -f "$backup/tunnelmod-domain" ]] && cp -a "$backup/tunnelmod-domain" /usr/local/sbin/tunnelmod-domain
     [[ -f "$backup/tunnelmod-render-nginx" ]] && cp -a "$backup/tunnelmod-render-nginx" /usr/local/sbin/tunnelmod-render-nginx
+    [[ -f "$backup/tunnelmod-agent" ]] && cp -a "$backup/tunnelmod-agent" /usr/local/sbin/tunnelmod-agent
     [[ -f "$backup/tunnel-panel.service" ]] && cp -a "$backup/tunnel-panel.service" /etc/systemd/system/tunnel-panel.service
     [[ -f "$backup/tunnel-panel-haproxy.service" ]] && cp -a "$backup/tunnel-panel-haproxy.service" /etc/systemd/system/tunnel-panel-haproxy.service
     [[ -f "$backup/nginx-tunnel-panel.conf" ]] && cp -a "$backup/nginx-tunnel-panel.conf" /etc/nginx/conf.d/tunnel-panel.conf
@@ -109,6 +111,7 @@ install -o root -g root -m 755 "$SOURCE_DIR/update.sh" /usr/local/sbin/tunnelmod
 install -o root -g root -m 755 "$SOURCE_DIR/diagnose.sh" /usr/local/sbin/tunnelmod-diagnose
 install -o root -g root -m 755 "$SOURCE_DIR/domain.sh" /usr/local/sbin/tunnelmod-domain
 install -o root -g root -m 755 "$SOURCE_DIR/scripts/render-nginx.sh" /usr/local/sbin/tunnelmod-render-nginx
+bash "$SOURCE_DIR/scripts/install-agent.sh" "$SOURCE_DIR" || echo "Warning: Go agent build failed; Python fallback remains active." >&2
 install -o root -g root -m 644 "$SOURCE_DIR/scripts/tunnel-panel.service" /etc/systemd/system/tunnel-panel.service
 install -o root -g root -m 644 "$SOURCE_DIR/scripts/tunnel-panel-haproxy.service" /etc/systemd/system/tunnel-panel-haproxy.service
 printf '%s\n' "$SOURCE_DIR" >"$SOURCE_FILE"
