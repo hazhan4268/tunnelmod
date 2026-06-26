@@ -63,5 +63,16 @@ def csrf_token() -> str:
 
 def check_csrf() -> None:
     supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
-    if not supplied or not secrets.compare_digest(supplied, session.get("csrf", "")):
-        abort(400, "CSRF validation failed")
+    expected = session.get("csrf", "")
+    if supplied and expected and secrets.compare_digest(supplied, expected):
+        return
+
+    # Login is protected by the admin password itself. This fallback prevents stale
+    # browser cookies from breaking the first login after switching the panel from
+    # HTTPS/self-signed mode to plain HTTP mode. All authenticated panel actions
+    # still require a strict CSRF match.
+    if request.endpoint == "login" and not session.get("authenticated"):
+        session.pop("csrf", None)
+        return
+
+    abort(400, "CSRF validation failed")
