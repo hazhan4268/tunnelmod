@@ -84,7 +84,11 @@ def render_haproxy(exclude=None):
         "WHERE t.enabled=1 AND t.mode IN ('wg_haproxy','direct_haproxy')"
     ).fetchall()
     lines = [
-        "global", "    log stdout format raw local0", "    maxconn 10000", "",
+        "global",
+        "    log stdout format raw local0",
+        "    maxconn 10000",
+        "    stats socket /run/tunnel-panel-haproxy.sock mode 600 level admin",
+        "",
         "defaults", "    mode tcp", "    log global", "    timeout connect 8s",
         "    timeout client  60s", "    timeout server  60s", ""
     ]
