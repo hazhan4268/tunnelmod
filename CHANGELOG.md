@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.5 — 2026-06-26
+
+- Hardened Nginx renderer include cleanup and listener detection
+- Fixed stale direct include handling in `/etc/nginx/nginx.conf`
+- Strengthened repair flow with port-level 8443 checks before success
+- Strengthened updater rollback to include all TunnelMod Nginx include modes
+- Lowered Go module version for Ubuntu apt compatibility
+- Rechecked repository for personal IPs and private-key markers
+
 ## 1.2.4 — 2026-06-26
 
 - Added graphical terminal UI to the official online installer using `whiptail`
