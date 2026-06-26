@@ -2,26 +2,32 @@
 {% block title %}داشبورد | TunnelMod{% endblock %}
 {% block content %}
 <div class="hero">
-  <div><p class="eyebrow">TunnelMod 1.0.0 Stable</p><h1>داشبورد مدیریت تونل</h1><p class="muted">نمای سریع از سرورها، تونل‌ها و وضعیت نصب فعلی.</p></div>
+  <div><p class="eyebrow">TunnelMod Stable</p><h1>داشبورد مدیریت تونل</h1><p class="muted">نمای سریع از سرورها، تونل‌ها، ترافیک و وضعیت نصب فعلی.</p></div>
   <div class="hero-actions"><a class="button" href="{{ url_for('tunnels') }}">ساخت تونل</a><a class="button secondary" href="{{ url_for('system') }}">بررسی بروزرسانی</a></div>
 </div>
-<section class="stats">
+<section class="stats wide-stats">
   <div class="stat card"><strong>{{ stats.servers }}</strong><span>کل سرورها</span></div>
   <div class="stat card"><strong>{{ stats.online }}</strong><span>سرور آنلاین</span></div>
   <div class="stat card"><strong>{{ stats.tunnels }}</strong><span>تونل فعال</span></div>
-  <div class="stat card"><strong>{{ stats.errors }}</strong><span>خطای فعال</span></div>
+  <div class="stat card"><strong>{{ stats.traffic_in|bytes }}</strong><span>ورودی کل</span></div>
+  <div class="stat card"><strong>{{ stats.traffic_out|bytes }}</strong><span>خروجی کل</span></div>
 </section>
 <section class="grid two">
   <div class="card">
     <div class="section-title"><h2>آخرین تونل‌ها</h2><a class="button small" href="{{ url_for('tunnels') }}">مدیریت تونل‌ها</a></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>نام</th><th>سرور</th><th>روش</th><th>مسیر</th><th>وضعیت</th></tr></thead>
+    <div class="table-wrap"><table class="responsive-table">
+      <thead><tr><th>نام</th><th>سرور</th><th>مسیر</th><th>ورودی</th><th>خروجی</th><th>وضعیت</th></tr></thead>
       <tbody>
       {% for t in tunnels %}
-        <tr><td>{{ t.name }}</td><td>{{ t.server_name }}</td><td><code>{{ t.mode }}</code></td>
-        <td><span dir="ltr">:{{ t.listen_port }} → {{ t.host }}:{{ t.target_port }}</span></td>
-        <td><span class="badge {{ t.status }}">{{ t.status }}</span></td></tr>
-      {% else %}<tr><td colspan="5" class="empty">هنوز تونلی ساخته نشده است.</td></tr>{% endfor %}
+        <tr>
+          <td data-label="نام">{{ t.name }}</td>
+          <td data-label="سرور">{{ t.server_name }}</td>
+          <td data-label="مسیر"><span dir="ltr">:{{ t.listen_port }} → {{ t.host }}:{{ t.target_port }}</span></td>
+          <td data-label="ورودی"><strong dir="ltr">{{ t.traffic_in_bytes|bytes }}</strong></td>
+          <td data-label="خروجی"><strong dir="ltr">{{ t.traffic_out_bytes|bytes }}</strong></td>
+          <td data-label="وضعیت"><span class="badge {{ t.status }}">{{ t.status }}</span></td>
+        </tr>
+      {% else %}<tr><td colspan="6" class="empty">هنوز تونلی ساخته نشده است.</td></tr>{% endfor %}
       </tbody>
     </table></div>
   </div>
