@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}تونل‌ها | پنل تونل{% endblock %}
+{% block title %}تونل‌ها | TunnelMod{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>تونل‌ها</h1><p class="muted">برای امنیت و پنهان‌ماندن مقصد، WireGuard + DNAT پیشنهاد می‌شود.</p></div></div>
+<div class="hero"><div><p class="eyebrow">Tunnel Manager</p><h1>تونل‌ها</h1><p class="muted">ایجاد، مشاهده ترافیک، ویرایش و حذف تونل‌ها.</p></div></div>
 <section class="card">
   <h2>ایجاد تونل</h2>
   {% if servers %}
@@ -20,17 +20,29 @@
     <label>پورت مقصد<input type="number" name="target_port" min="1" max="65535" value="443" required></label>
     <button class="full" type="submit">ایجاد و فعال‌سازی</button>
   </form>
-  {% else %}<p class="empty">ابتدا یک سرور خارج اضافه کنید.</p>{% endif %}
+  {% else %}<p class="empty">ابتدا یک سرور مقصد اضافه کنید.</p>{% endif %}
 </section>
 <section class="card">
-  <h2>فهرست تونل‌ها</h2>
-  <div class="table-wrap"><table>
-    <thead><tr><th>نام</th><th>سرور</th><th>روش</th><th>پروتکل</th><th>مسیر</th><th>وضعیت</th><th></th></tr></thead>
+  <div class="section-title"><h2>فهرست تونل‌ها</h2><span class="muted">ترافیک از counters سیستم خوانده می‌شود.</span></div>
+  <div class="table-wrap"><table class="responsive-table">
+    <thead><tr><th>نام</th><th>سرور</th><th>روش</th><th>پروتکل</th><th>مسیر</th><th>ورودی</th><th>خروجی</th><th>کل</th><th>وضعیت</th><th>عملیات</th></tr></thead>
     <tbody>{% for t in tunnels %}
-      <tr><td>{{ t.name }}</td><td>{{ t.server_name }}<small dir="ltr">{{ t.host }}</small></td><td><code>{{ t.mode }}</code></td><td>{{ t.protocol|upper }}</td>
-      <td dir="ltr">:{{ t.listen_port }} → :{{ t.target_port }}</td><td><span class="badge {{ t.status }}">{{ t.status }}</span>{% if t.last_error %}<small class="error-text">{{ t.last_error }}</small>{% endif %}</td>
-      <td><form method="post" action="{{ url_for('tunnel_delete', tunnel_id=t.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger small">حذف</button></form></td></tr>
-    {% else %}<tr><td colspan="7" class="empty">تونلی وجود ندارد.</td></tr>{% endfor %}</tbody>
+      <tr>
+        <td data-label="نام">{{ t.name }}</td>
+        <td data-label="سرور">{{ t.server_name }}<small dir="ltr">{{ t.host }}</small></td>
+        <td data-label="روش"><code>{{ t.mode }}</code></td>
+        <td data-label="پروتکل">{{ t.protocol|upper }}</td>
+        <td data-label="مسیر" dir="ltr">:{{ t.listen_port }} → :{{ t.target_port }}</td>
+        <td data-label="ورودی"><strong dir="ltr">{{ t.traffic_in_bytes|bytes }}</strong><small>{{ t.traffic_in_packets }} pkt</small></td>
+        <td data-label="خروجی"><strong dir="ltr">{{ t.traffic_out_bytes|bytes }}</strong><small>{{ t.traffic_out_packets }} pkt</small></td>
+        <td data-label="کل"><strong dir="ltr">{{ t.traffic_total_bytes|bytes }}</strong></td>
+        <td data-label="وضعیت"><span class="badge {{ t.status }}">{{ t.status }}</span>{% if t.last_error %}<small class="error-text">{{ t.last_error }}</small>{% endif %}</td>
+        <td data-label="عملیات" class="actions">
+          <a class="button secondary small" href="{{ url_for('tunnel_edit', tunnel_id=t.id) }}">ویرایش</a>
+          <form method="post" action="{{ url_for('tunnel_delete', tunnel_id=t.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger small">حذف</button></form>
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="10" class="empty">تونلی وجود ندارد.</td></tr>{% endfor %}</tbody>
   </table></div>
 </section>
 {% endblock %}
