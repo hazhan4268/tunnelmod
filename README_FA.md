@@ -12,7 +12,7 @@
 
 مدیریت WireGuard، ‏DNAT و HAProxy از طریق یک پنل تحت وب ساده و مستقل
 
-[![نسخه](https://img.shields.io/badge/version-0.1.2--beta-f59e0b?style=flat-square)](CHANGELOG.md)
+[![نسخه](https://img.shields.io/badge/version-0.1.3--beta-f59e0b?style=flat-square)](CHANGELOG.md)
 [![تست‌ها](https://img.shields.io/github/actions/workflow/status/hazhan4268/tunnelmod/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/hazhan4268/tunnelmod/actions/workflows/ci.yml)
 [![اوبونتو](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)](#پیشنیازها)
 [![مجوز](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -38,7 +38,7 @@ TunnelMod یک سرور Ubuntu را به نقطه ورودی مرکزی برای
 - پنل مدیریتی HTTPS روی پورت `8443`
 - کانفیگ پایدار Nginx در مسیر استاندارد `/etc/nginx/conf.d/tunnel-panel.conf`
 - دستور به‌روزرسانی امن با Backup و Rollback
-- ابزار SSL دامنه با Let's Encrypt
+- فعال‌سازی SSL دامنه در همان نصب اولیه
 
 ## پیش‌نیازها
 
@@ -57,6 +57,8 @@ wget -qO install-online.sh https://raw.githubusercontent.com/hazhan4268/tunnelmo
 sudo bash install-online.sh
 ```
 
+در ابتدای نصب، دامنه پنل برای SSL پرسیده می‌شود. اگر خالی بگذارید، نصب با گواهی خودامضا انجام می‌شود و بعداً می‌توانید SSL دامنه را فعال کنید.
+
 روش کلاسیک:
 
 ```bash
@@ -72,7 +74,7 @@ https://IP-SERVER:8443
 
 ## SSL دامنه
 
-ابتدا رکورد `A` دامنه را به IP سرور وصل کنید و پورت‌های `80/TCP` و `8443/TCP` را در فایروال ارائه‌دهنده باز کنید. سپس:
+در نصب آنلاین، SSL دامنه همان ابتدا قابل فعال‌سازی است. برای فعال‌سازی یا تغییر دامنه بعد از نصب:
 
 ```bash
 sudo tunnelmod-domain panel.example.com admin@example.com
