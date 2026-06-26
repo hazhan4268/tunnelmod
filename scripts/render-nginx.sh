@@ -2,8 +2,12 @@
 set -Eeuo pipefail
 
 ENV_FILE="${1:-/etc/tunnel-panel/panel.env}"
-OUT="/etc/nginx/conf.d/tunnel-panel.conf"
 ACME_ROOT="/var/www/tunnel-panel-acme"
+CONF_D_OUT="/etc/nginx/conf.d/tunnel-panel.conf"
+SITES_AVAILABLE="/etc/nginx/sites-available/tunnel-panel"
+SITES_ENABLED="/etc/nginx/sites-enabled/tunnel-panel"
+DIRECT_INCLUDE="/etc/nginx/tunnel-panel.include.conf"
+NGINX_CONF="/etc/nginx/nginx.conf"
 
 if [[ -r "$ENV_FILE" ]]; then
   set -a
@@ -41,9 +45,9 @@ if [[ -n "$PANEL_DOMAIN" ]]; then
 "
 fi
 
-install -d -o root -g root -m 755 /etc/nginx/conf.d
-rm -f /etc/nginx/sites-enabled/tunnel-panel
-cat >"$OUT" <<EOF
+make_config() {
+  local out="$1"
+  cat >"$out" <<EOF
 proxy_headers_hash_max_size 1024;
 proxy_headers_hash_bucket_size 128;
 
@@ -75,5 +79,46 @@ server {
     }
 }
 EOF
+}
 
-nginx -t
+nginx_loads_panel() {
+  nginx -T 2>/tmp/tunnelmod-nginx-render.log | grep -q "listen 8443 ssl"
+}
+
+install -d -o root -g root -m 755 /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabled
+rm -f "$CONF_D_OUT" "$SITES_AVAILABLE" "$SITES_ENABLED" "$DIRECT_INCLUDE"
+
+make_config "$CONF_D_OUT"
+if nginx -t && nginx_loads_panel; then
+  echo "TunnelMod Nginx include mode: conf.d"
+  exit 0
+fi
+
+rm -f "$CONF_D_OUT"
+make_config "$SITES_AVAILABLE"
+ln -s "$SITES_AVAILABLE" "$SITES_ENABLED"
+if nginx -t && nginx_loads_panel; then
+  echo "TunnelMod Nginx include mode: sites-enabled"
+  exit 0
+fi
+
+rm -f "$SITES_ENABLED" "$SITES_AVAILABLE"
+make_config "$DIRECT_INCLUDE"
+if ! grep -qF "include ${DIRECT_INCLUDE};" "$NGINX_CONF"; then
+  cp -a "$NGINX_CONF" "${NGINX_CONF}.tunnelmod.bak.$(date -u +%Y%m%dT%H%M%SZ)"
+  awk -v inc="    include /etc/nginx/tunnel-panel.include.conf;" '
+    !done && $0 ~ /^[[:space:]]*http[[:space:]]*\{/ { print; print inc; done=1; next }
+    { print }
+  ' "$NGINX_CONF" > /tmp/tunnelmod-nginx.conf
+  install -o root -g root -m 644 /tmp/tunnelmod-nginx.conf "$NGINX_CONF"
+  rm -f /tmp/tunnelmod-nginx.conf
+fi
+
+if nginx -t && nginx_loads_panel; then
+  echo "TunnelMod Nginx include mode: direct nginx.conf include"
+  exit 0
+fi
+
+echo "TunnelMod Nginx config was generated, but Nginx still does not load listen 8443." >&2
+cat /tmp/tunnelmod-nginx-render.log >&2 || true
+exit 1
