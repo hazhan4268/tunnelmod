@@ -49,7 +49,7 @@ if [[ "${TUNNELMOD_UPDATE_APPLY:-0}" != 1 ]]; then
   exec env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash "$SOURCE_DIR/update.sh"
 fi
 
-bash -n install.sh update.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper
+bash -n install.sh update.sh domain.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper scripts/render-nginx.sh
 python3 -m compileall -q tunnel_panel tests
 if ! command -v curl >/dev/null; then
   apt-get update
@@ -66,9 +66,11 @@ install -d -o root -g root -m 700 "$backup"
 [[ -f /usr/local/sbin/tunnel-panel-helper ]] && cp -a /usr/local/sbin/tunnel-panel-helper "$backup/tunnel-panel-helper"
 [[ -f /usr/local/sbin/tunnelmod-update ]] && cp -a /usr/local/sbin/tunnelmod-update "$backup/tunnelmod-update"
 [[ -f /usr/local/sbin/tunnelmod-diagnose ]] && cp -a /usr/local/sbin/tunnelmod-diagnose "$backup/tunnelmod-diagnose"
+[[ -f /usr/local/sbin/tunnelmod-domain ]] && cp -a /usr/local/sbin/tunnelmod-domain "$backup/tunnelmod-domain"
+[[ -f /usr/local/sbin/tunnelmod-render-nginx ]] && cp -a /usr/local/sbin/tunnelmod-render-nginx "$backup/tunnelmod-render-nginx"
 [[ -f /etc/systemd/system/tunnel-panel.service ]] && cp -a /etc/systemd/system/tunnel-panel.service "$backup/tunnel-panel.service"
 [[ -f /etc/systemd/system/tunnel-panel-haproxy.service ]] && cp -a /etc/systemd/system/tunnel-panel-haproxy.service "$backup/tunnel-panel-haproxy.service"
-[[ -f /etc/nginx/sites-available/tunnel-panel ]] && cp -a /etc/nginx/sites-available/tunnel-panel "$backup/nginx-tunnel-panel"
+[[ -f /etc/nginx/conf.d/tunnel-panel.conf ]] && cp -a /etc/nginx/conf.d/tunnel-panel.conf "$backup/nginx-tunnel-panel.conf"
 
 completed=0
 rollback() {
@@ -76,24 +78,17 @@ rollback() {
   trap - ERR
   if [[ $completed -eq 0 ]]; then
     echo "Update failed; restoring the previous installed version..." >&2
-    if [[ -d "$backup/opt-tunnel-panel" ]]; then
-      rm -rf /opt/tunnel-panel
-      cp -a "$backup/opt-tunnel-panel" /opt/tunnel-panel
-    fi
-    if [[ -d "$backup/var-lib-tunnel-panel" ]]; then
-      rm -rf /var/lib/tunnel-panel
-      cp -a "$backup/var-lib-tunnel-panel" /var/lib/tunnel-panel
-    fi
-    if [[ -d "$backup/etc-tunnel-panel" ]]; then
-      rm -rf /etc/tunnel-panel
-      cp -a "$backup/etc-tunnel-panel" /etc/tunnel-panel
-    fi
+    if [[ -d "$backup/opt-tunnel-panel" ]]; then rm -rf /opt/tunnel-panel; cp -a "$backup/opt-tunnel-panel" /opt/tunnel-panel; fi
+    if [[ -d "$backup/var-lib-tunnel-panel" ]]; then rm -rf /var/lib/tunnel-panel; cp -a "$backup/var-lib-tunnel-panel" /var/lib/tunnel-panel; fi
+    if [[ -d "$backup/etc-tunnel-panel" ]]; then rm -rf /etc/tunnel-panel; cp -a "$backup/etc-tunnel-panel" /etc/tunnel-panel; fi
     [[ -f "$backup/tunnel-panel-helper" ]] && cp -a "$backup/tunnel-panel-helper" /usr/local/sbin/tunnel-panel-helper
     [[ -f "$backup/tunnelmod-update" ]] && cp -a "$backup/tunnelmod-update" /usr/local/sbin/tunnelmod-update
     [[ -f "$backup/tunnelmod-diagnose" ]] && cp -a "$backup/tunnelmod-diagnose" /usr/local/sbin/tunnelmod-diagnose
+    [[ -f "$backup/tunnelmod-domain" ]] && cp -a "$backup/tunnelmod-domain" /usr/local/sbin/tunnelmod-domain
+    [[ -f "$backup/tunnelmod-render-nginx" ]] && cp -a "$backup/tunnelmod-render-nginx" /usr/local/sbin/tunnelmod-render-nginx
     [[ -f "$backup/tunnel-panel.service" ]] && cp -a "$backup/tunnel-panel.service" /etc/systemd/system/tunnel-panel.service
     [[ -f "$backup/tunnel-panel-haproxy.service" ]] && cp -a "$backup/tunnel-panel-haproxy.service" /etc/systemd/system/tunnel-panel-haproxy.service
-    [[ -f "$backup/nginx-tunnel-panel" ]] && cp -a "$backup/nginx-tunnel-panel" /etc/nginx/sites-available/tunnel-panel
+    [[ -f "$backup/nginx-tunnel-panel.conf" ]] && cp -a "$backup/nginx-tunnel-panel.conf" /etc/nginx/conf.d/tunnel-panel.conf
     systemctl daemon-reload || true
     systemctl restart tunnel-panel nginx || true
     echo "Rollback completed. Backup: $backup" >&2
@@ -111,13 +106,14 @@ install -o root -g root -m 644 "$SOURCE_DIR/requirements.txt" /opt/tunnel-panel/
 install -o root -g root -m 750 "$SOURCE_DIR/scripts/tunnel-panel-helper" /usr/local/sbin/tunnel-panel-helper
 install -o root -g root -m 755 "$SOURCE_DIR/update.sh" /usr/local/sbin/tunnelmod-update
 install -o root -g root -m 755 "$SOURCE_DIR/diagnose.sh" /usr/local/sbin/tunnelmod-diagnose
+install -o root -g root -m 755 "$SOURCE_DIR/domain.sh" /usr/local/sbin/tunnelmod-domain
+install -o root -g root -m 755 "$SOURCE_DIR/scripts/render-nginx.sh" /usr/local/sbin/tunnelmod-render-nginx
 install -o root -g root -m 644 "$SOURCE_DIR/scripts/tunnel-panel.service" /etc/systemd/system/tunnel-panel.service
 install -o root -g root -m 644 "$SOURCE_DIR/scripts/tunnel-panel-haproxy.service" /etc/systemd/system/tunnel-panel-haproxy.service
-install -o root -g root -m 644 "$SOURCE_DIR/scripts/nginx.conf.template" /etc/nginx/sites-available/tunnel-panel
 printf '%s\n' "$SOURCE_DIR" >"$SOURCE_FILE"
 chmod 600 "$SOURCE_FILE"
 
-nginx -t
+/usr/local/sbin/tunnelmod-render-nginx /etc/tunnel-panel/panel.env
 systemctl daemon-reload
 systemctl restart tunnel-panel nginx
 
@@ -136,3 +132,4 @@ trap - ERR
 version="$(<"$SOURCE_DIR/VERSION")"
 echo "TunnelMod ${version} is installed and healthy."
 echo "Backup: $backup"
+echo "Domain SSL command: sudo tunnelmod-domain panel.example.com email@example.com"
