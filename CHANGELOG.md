@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 — 2026-06-26
+
+- Added per-tunnel inbound and outbound traffic counters
+- Added total traffic cards on the dashboard
+- Added traffic columns to the tunnel list
+- Added safe tunnel editing with remove, apply, health status, and rollback attempt
+- Added HAProxy stats socket support for TCP proxy tunnel traffic
+- Added responsive table/card layout for mobile and tablet devices
+- Added dedicated tunnel edit page
+
 ## 1.0.0 — 2026-06-26
 
 - Promoted TunnelMod to stable version 1.0.0
