@@ -1,86 +1,83 @@
-# TunnelMod
+<div align="center">
+
+# 🚇 TunnelMod
+
+**Ubuntu tunnel panel for WireGuard, DNAT and HAProxy**
+
+![Version](https://img.shields.io/badge/version-1.2.4-22c55e?style=flat-square)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04+-E95420?style=flat-square&logo=ubuntu&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)
 
 [فارسی](README_FA.md)
 
-TunnelMod is a self-hosted Ubuntu panel for managing multi-server tunnels with WireGuard, DNAT, and HAProxy.
+</div>
 
-## Requirements
+---
 
-- Ubuntu 20.04 or newer
-- Full sudo/root access
-- Public IPv4 address
-- Open TCP/8443 for the panel
-- Open TCP/80 if you want Let's Encrypt SSL
-
-## Install
+## ⚡ One-command install
 
 ```bash
-wget -qO install-online.sh https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh
-sudo bash install-online.sh
+curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
 ```
 
-The installer uses a terminal UI when available. To force plain text mode:
+The installer opens a terminal UI. Enter your domain during installation to get SSL in the same flow.
 
-```bash
-TUNNELMOD_NO_TUI=1 sudo -E bash install-online.sh
-```
+| Need | Port |
+|---|---:|
+| Panel | `8443/TCP` |
+| Domain SSL | `80/TCP` |
 
-Panel URL:
+---
+
+## 🌐 Panel URL
 
 ```text
 https://YOUR_SERVER_IP:8443
 ```
 
-## Domain SSL
-
-During installation, enter your panel domain when asked. The installer will request Let's Encrypt SSL in the same flow.
-
-Example domain URL:
+With domain SSL:
 
 ```text
 https://panel.example.com:8443
 ```
 
-To change SSL later:
+---
 
-```bash
-sudo tunnelmod-domain panel.example.com admin@example.com
-```
+## 🔄 Update
 
-## Update
-
-From the panel:
+Panel:
 
 ```text
 System and Update
 ```
 
-From terminal:
+Terminal:
 
 ```bash
 sudo tunnelmod-update
 ```
 
-## Repair
+---
 
-For a partial or failed installation:
+## 🛠 Repair
 
 ```bash
-wget -qO repair-install.sh https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/repair-install.sh
-sudo bash repair-install.sh
+curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/repair-install.sh -o /tmp/tunnelmod-repair && sudo bash /tmp/tunnelmod-repair
 ```
 
-## Diagnostics
+---
+
+## 🔍 Diagnose
 
 ```bash
 sudo tunnelmod-diagnose
 ```
 
-## Security
+---
+
+## 🔐 Security
 
 Do not publish `/etc/tunnel-panel`, `/var/lib/tunnel-panel`, private keys, databases, passwords, or real server backups.
-
-IP addresses entered during installation or in the panel stay on the installed server and are not stored in this repository.
 
 ## License
 
