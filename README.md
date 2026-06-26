@@ -12,7 +12,7 @@
 
 Manage WireGuard, DNAT, and HAProxy routes from a clean self-hosted web panel.
 
-[![Version](https://img.shields.io/badge/version-0.1.0--beta-f59e0b?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.1--beta-f59e0b?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/hazhan4268/tunnelmod/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/hazhan4268/tunnelmod/actions/workflows/ci.yml)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)](#requirements)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -146,11 +146,21 @@ The second directory contains sensitive material and must be stored securely.
 
 ## Updating
 
-TunnelMod does not yet provide a dedicated migration command. Before upgrading:
+Fresh installations include a transactional updater:
 
-1. Back up `/var/lib/tunnel-panel` and `/etc/tunnel-panel`.
-2. Read [CHANGELOG.md](CHANGELOG.md).
-3. Pull the intended release and review its installation changes.
+```bash
+sudo tunnelmod-update
+```
+
+It accepts only a fast-forward update from the configured Git origin, creates a private backup, preserves configuration, database, certificates and SSH keys, then performs an HTTPS health check. A failed update automatically restores the previous installed version.
+
+For installations created before this command was introduced, run it once from the cloned repository:
+
+```bash
+cd tunnelmod
+git pull --ff-only
+sudo bash update.sh
+```
 
 ## Uninstalling
 
