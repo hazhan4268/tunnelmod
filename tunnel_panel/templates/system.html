@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}سیستم و بروزرسانی | TunnelMod{% endblock %}
+{% block content %}
+<div class="hero"><div><p class="eyebrow">System Center</p><h1>سیستم و بروزرسانی</h1><p class="muted">وضعیت نسخه، دامنه، پورت‌های رزرو و بروزرسانی امن از داخل پنل.</p></div></div>
+<section class="grid two">
+  <div class="card">
+    <h2>اطلاعات نصب</h2>
+    <div class="kv"><span>نسخه فعلی</span><strong dir="ltr">{{ system.version }}</strong></div>
+    <div class="kv"><span>IP عمومی</span><strong dir="ltr">{{ system.public_ip }}</strong></div>
+    <div class="kv"><span>دامنه پنل</span><strong dir="ltr">{{ system.domain }}</strong></div>
+    <div class="kv"><span>پورت‌های رزرو</span><strong dir="ltr">{{ system.reserved_ports }}</strong></div>
+  </div>
+  <div class="card note">
+    <h2>قانون بروزرسانی امن</h2>
+    <p>آپدیت فقط از شاخه <code>main</code> و به‌صورت Fast-forward انجام می‌شود. قبل از تغییر، Backup ساخته می‌شود و اگر Health Check شکست بخورد، نسخه قبلی برمی‌گردد.</p>
+  </div>
+</section>
+<section class="card">
+  <div class="section-title"><h2>بروزرسانی از GitHub</h2><a class="button secondary small" href="{{ url_for('system', check=1) }}">بررسی وجود آپدیت</a></div>
+  {% if update %}
+  <div class="update-box {{ update.status }}">
+    <div class="kv"><span>وضعیت</span><strong>{{ update.status }}</strong></div>
+    <div class="kv"><span>نسخه فعلی</span><strong dir="ltr">{{ update.local_version }}</strong></div>
+    <div class="kv"><span>نسخه GitHub</span><strong dir="ltr">{{ update.remote_version }}</strong></div>
+    <div class="kv"><span>Commit فعلی</span><strong dir="ltr">{{ update.local_sha[:12] }}</strong></div>
+    <div class="kv"><span>Commit جدید</span><strong dir="ltr">{{ update.remote_sha[:12] }}</strong></div>
+  </div>
+  {% if update.status == 'available' %}
+  <form method="post" action="{{ url_for('system_update') }}" class="confirm-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>برای تأیید بروزرسانی عبارت UPDATE را وارد کنید<input name="confirm" placeholder="UPDATE" autocomplete="off"></label>
+    <button type="submit">اجرای بروزرسانی و Health Check</button>
+  </form>
+  {% elif update.status == 'current' %}
+  <p class="empty">نسخه نصب‌شده با GitHub برابر است.</p>
+  {% else %}
+  <p class="alert error">وضعیت مخزن نیاز به بررسی دستی دارد. احتمالاً تاریخچه محلی با GitHub متفاوت است.</p>
+  {% endif %}
+  {% else %}
+  <p class="empty">برای بررسی نسخه جدید، دکمه «بررسی وجود آپدیت» را بزنید.</p>
+  {% endif %}
+</section>
+{% endblock %}
