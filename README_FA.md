@@ -20,25 +20,18 @@
 curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
 ```
 
-نصب‌کننده محیط گرافیکی ترمینال را باز می‌کند، نصب قبلی TunnelMod را Backup می‌گیرد و پاک می‌کند، پنل را از نو می‌سازد و اگر دامنه وارد شود SSL را در همان روند نصب می‌گیرد.
+حالت پیش‌فرض پنل HTTP روی پورت `8443` است. برای نصب، دامنه، SSL، گواهی IP یا گواهی خودامضا لازم نیست.
 
 | نیاز | پورت |
 |---|---:|
 | پنل | `8443/TCP` |
-| SSL دامنه | `80/TCP` |
 
 ---
 
 ## 🌐 آدرس پنل
 
 ```text
-https://IP-SERVER:8443
-```
-
-با SSL دامنه:
-
-```text
-https://panel.example.com:8443
+http://IP-SERVER:8443
 ```
 
 ---
