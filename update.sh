@@ -100,6 +100,7 @@ trap rollback ERR
 rm -rf /opt/tunnel-panel/tunnel_panel
 cp -a "$SOURCE_DIR/tunnel_panel" /opt/tunnel-panel/
 install -o root -g root -m 644 "$SOURCE_DIR/requirements.txt" /opt/tunnel-panel/requirements.txt
+install -o root -g root -m 644 "$SOURCE_DIR/VERSION" /opt/tunnel-panel/VERSION
 [[ -x /opt/tunnel-panel/venv/bin/pip ]] || python3 -m venv /opt/tunnel-panel/venv
 /opt/tunnel-panel/venv/bin/pip install --no-cache-dir -r /opt/tunnel-panel/requirements.txt
 
