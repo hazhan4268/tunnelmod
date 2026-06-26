@@ -83,6 +83,9 @@ haproxy_stop(){
 }
 
 traffic_stats(){
+  if [[ -x /usr/local/sbin/tunnelmod-agent ]]; then
+    /usr/local/sbin/tunnelmod-agent traffic-stats && return 0
+  fi
   python3 - <<'PY'
 import csv, io, os, re, socket, subprocess
 stats = {}
@@ -109,19 +112,13 @@ except Exception:
 sock_path = '/run/tunnel-panel-haproxy.sock'
 if os.path.exists(sock_path):
     try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(5)
-        s.connect(sock_path)
-        s.sendall(b'show stat\n')
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(5); s.connect(sock_path); s.sendall(b'show stat\n')
         chunks = []
         while True:
             chunk = s.recv(65535)
-            if not chunk:
-                break
+            if not chunk: break
             chunks.append(chunk)
-        s.close()
-        text = b''.join(chunks).decode('utf-8', 'replace')
-        text = text.replace('# pxname', 'pxname')
+        s.close(); text = b''.join(chunks).decode('utf-8', 'replace').replace('# pxname', 'pxname')
         for row in csv.DictReader(io.StringIO(text)):
             if row.get('svname') == 'FRONTEND' and row.get('pxname','').startswith('tp_front_'):
                 tid = row['pxname'].split('_')[-1]
