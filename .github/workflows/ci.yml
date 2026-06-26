@@ -19,7 +19,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
       - run: pip install -r requirements.txt
       - run: python -m compileall -q tunnel_panel
-      - run: bash -n install.sh install-online.sh update.sh domain.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper scripts/render-nginx.sh
+      - run: bash -n install.sh install-online.sh update.sh domain.sh diagnose.sh uninstall.sh scripts/tunnel-panel-helper scripts/render-nginx.sh scripts/install-agent.sh
+      - run: go build -o /tmp/tunnelmod-agent ./cmd/tunnelmod-agent
+      - run: /tmp/tunnelmod-agent traffic-stats
       - run: python -m unittest discover -s tests -v
