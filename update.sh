@@ -132,9 +132,14 @@ systemctl daemon-reload
 systemctl restart tunnel-panel
 systemctl restart nginx
 
+protocol="http"
+if [[ -r /etc/tunnel-panel/panel.env ]] && grep -q '^PANEL_TLS_MODE=\(letsencrypt\|selfsigned\|on\)' /etc/tunnel-panel/panel.env; then
+  protocol="https"
+fi
+
 healthy=0
 for _attempt in {1..20}; do
-  if ss -lnt '( sport = :8443 )' 2>/dev/null | grep -q ':8443' && curl -kfsS --max-time 3 https://127.0.0.1:8443/login -o /dev/null; then
+  if ss -lnt '( sport = :8443 )' 2>/dev/null | grep -q ':8443' && curl -kfsS --max-time 3 "${protocol}://127.0.0.1:8443/login" -o /dev/null; then
     healthy=1
     break
   fi
