@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 import sqlite3
 import subprocess
@@ -28,6 +30,18 @@ def parse_kv(text):
     return data
 
 
+def fmt_bytes(value):
+    try:
+        value = float(value or 0)
+    except (TypeError, ValueError):
+        value = 0
+    units = ["B", "KB", "MB", "GB", "TB"]
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
+        value /= 1024
+
+
 def installed_version():
     for path in ("/opt/tunnel-panel/VERSION", "/etc/tunnel-panel/VERSION"):
         try:
@@ -36,6 +50,79 @@ def installed_version():
         except OSError:
             pass
     return "unknown"
+
+
+def traffic_map(app):
+    try:
+        raw = run_helper(app, "traffic-stats", timeout=25)
+    except Exception:
+        return {}
+    data = {}
+    for row in csv.DictReader(io.StringIO(raw)):
+        try:
+            key = (int(row["id"]), row["proto"])
+            data[key] = {
+                "in_bytes": int(row.get("in_bytes") or 0),
+                "out_bytes": int(row.get("out_bytes") or 0),
+                "in_packets": int(row.get("in_packets") or 0),
+                "out_packets": int(row.get("out_packets") or 0),
+            }
+        except (KeyError, ValueError):
+            continue
+    return data
+
+
+def decorate_tunnels(rows, metrics):
+    result = []
+    for row in rows:
+        item = dict(row)
+        protos = ("tcp", "udp") if item["protocol"] == "both" else (item["protocol"],)
+        incoming = outgoing = inp = outp = 0
+        for proto in protos:
+            stat = metrics.get((item["id"], proto), {})
+            incoming += stat.get("in_bytes", 0)
+            outgoing += stat.get("out_bytes", 0)
+            inp += stat.get("in_packets", 0)
+            outp += stat.get("out_packets", 0)
+        item["traffic_in_bytes"] = incoming
+        item["traffic_out_bytes"] = outgoing
+        item["traffic_total_bytes"] = incoming + outgoing
+        item["traffic_in_packets"] = inp
+        item["traffic_out_packets"] = outp
+        result.append(item)
+    return result
+
+
+def validate_tunnel_form(db, reserved_ports, current_id=None):
+    name = valid_name(request.form.get("name"))
+    server_id = int(request.form.get("server_id"))
+    server = db.execute("SELECT * FROM servers WHERE id=?", (server_id,)).fetchone()
+    if not server:
+        raise ValueError("سرور مقصد پیدا نشد")
+    mode = request.form.get("mode")
+    if mode not in {"wg_dnat", "direct_dnat", "wg_haproxy", "direct_haproxy"}:
+        raise ValueError("روش اتصال نامعتبر است")
+    protocol = request.form.get("protocol")
+    if protocol not in {"tcp", "udp", "both"}:
+        raise ValueError("پروتکل نامعتبر است")
+    if mode.endswith("haproxy") and protocol != "tcp":
+        raise ValueError("HAProxy فقط با TCP قابل استفاده است")
+    listen = valid_port(request.form.get("listen_port"), "پورت ورودی")
+    target = valid_port(request.form.get("target_port"), "پورت مقصد")
+    if listen in reserved_ports:
+        raise ValueError("این پورت برای پنل یا اتصال SSH رزرو شده است")
+    params = [listen, protocol, protocol]
+    extra = ""
+    if current_id is not None:
+        extra = " AND id<>?"
+        params.append(current_id)
+    conflict = db.execute(
+        "SELECT id FROM tunnels WHERE enabled=1 AND listen_port=? "
+        "AND (protocol=? OR protocol='both' OR ?='both')" + extra, params
+    ).fetchone()
+    if conflict:
+        raise ValueError("این پورت و پروتکل قبلاً استفاده شده است")
+    return name, server_id, server, mode, protocol, listen, target
 
 
 def create_app():
@@ -62,6 +149,7 @@ def create_app():
     init_db(app.config["DATABASE"])
     app.teardown_appcontext(close_db)
     app.jinja_env.globals["csrf_token"] = csrf_token
+    app.jinja_env.filters["bytes"] = fmt_bytes
 
     @app.after_request
     def headers(response):
@@ -101,14 +189,16 @@ def create_app():
             "tunnels": db.execute("SELECT COUNT(*) n FROM tunnels WHERE enabled=1").fetchone()["n"],
             "errors": db.execute("SELECT COUNT(*) n FROM tunnels WHERE status='error'").fetchone()["n"],
         }
-        tunnels = db.execute(
+        total = db.execute("SELECT * FROM tunnels WHERE enabled=1").fetchall()
+        metrics = traffic_map(app)
+        decorated_total = decorate_tunnels(total, metrics)
+        stats["traffic_in"] = sum(t["traffic_in_bytes"] for t in decorated_total)
+        stats["traffic_out"] = sum(t["traffic_out_bytes"] for t in decorated_total)
+        rows = db.execute(
             "SELECT t.*,s.name server_name,s.host FROM tunnels t JOIN servers s ON s.id=t.server_id ORDER BY t.id DESC LIMIT 10"
         ).fetchall()
-        system = {
-            "version": installed_version(),
-            "public_ip": app.config["PUBLIC_IP"],
-            "domain": app.config["PANEL_DOMAIN"] or "تنظیم نشده",
-        }
+        tunnels = decorate_tunnels(rows, metrics)
+        system = {"version": installed_version(), "public_ip": app.config["PUBLIC_IP"], "domain": app.config["PANEL_DOMAIN"] or "تنظیم نشده"}
         return render_template("dashboard.html", stats=stats, tunnels=tunnels, system=system)
 
     @app.route("/system")
@@ -122,8 +212,7 @@ def create_app():
             except Exception as exc:
                 flash(f"بررسی بروزرسانی ناموفق بود: {exc}", "error")
         system_info = {
-            "version": installed_version(),
-            "public_ip": app.config["PUBLIC_IP"],
+            "version": installed_version(), "public_ip": app.config["PUBLIC_IP"],
             "domain": app.config["PANEL_DOMAIN"] or "تنظیم نشده",
             "reserved_ports": ", ".join(str(p) for p in sorted(app.config["RESERVED_PORTS"])),
         }
@@ -133,8 +222,7 @@ def create_app():
     @login_required
     def system_update():
         check_csrf()
-        confirm = request.form.get("confirm") == "UPDATE"
-        if not confirm:
+        if request.form.get("confirm") != "UPDATE":
             flash("برای اجرای بروزرسانی عبارت UPDATE را وارد کنید", "error")
             return redirect(url_for("system", check=1))
         try:
@@ -165,8 +253,7 @@ def create_app():
                 public_key = open(app.config["SSH_KEY"] + ".pub", encoding="utf-8").read()
                 enroll_server(host, port, user, password, public_key, app.config["SSH_KEY"])
                 with transaction() as tx:
-                    tx.execute("INSERT INTO servers(name,host,ssh_port,ssh_user,status) VALUES(?,?,?,?,?)",
-                               (name, host, port, user, "online"))
+                    tx.execute("INSERT INTO servers(name,host,ssh_port,ssh_user,status) VALUES(?,?,?,?,?)", (name, host, port, user, "online"))
                 flash("سرور اضافه شد؛ رمز آن ذخیره نشد و اتصال کلیدی فعال است", "success")
                 return redirect(url_for("servers"))
             except (ValueError, RuntimeError, sqlite3.IntegrityError, OSError) as exc:
@@ -201,9 +288,7 @@ def create_app():
         if count:
             flash("ابتدا تونل‌های متصل به این سرور را حذف کنید", "error")
         else:
-            db.execute("DELETE FROM servers WHERE id=?", (server_id,))
-            db.commit()
-            flash("سرور حذف شد", "success")
+            db.execute("DELETE FROM servers WHERE id=?", (server_id,)); db.commit(); flash("سرور حذف شد", "success")
         return redirect(url_for("servers"))
 
     @app.route("/tunnels", methods=["GET", "POST"])
@@ -211,54 +296,60 @@ def create_app():
     def tunnels():
         db = get_db()
         if request.method == "POST":
-            check_csrf()
-            tunnel_id = None
+            check_csrf(); tunnel_id = None
             try:
-                name = valid_name(request.form.get("name"))
-                server_id = int(request.form.get("server_id"))
-                server = db.execute("SELECT * FROM servers WHERE id=?", (server_id,)).fetchone()
-                if not server:
-                    raise ValueError("سرور مقصد پیدا نشد")
-                mode = request.form.get("mode")
-                if mode not in {"wg_dnat", "direct_dnat", "wg_haproxy", "direct_haproxy"}:
-                    raise ValueError("روش اتصال نامعتبر است")
-                protocol = request.form.get("protocol")
-                if protocol not in {"tcp", "udp", "both"}:
-                    raise ValueError("پروتکل نامعتبر است")
-                if mode.endswith("haproxy") and protocol != "tcp":
-                    raise ValueError("HAProxy فقط با TCP قابل استفاده است")
-                listen = valid_port(request.form.get("listen_port"), "پورت ورودی")
-                target = valid_port(request.form.get("target_port"), "پورت مقصد")
-                if listen in app.config["RESERVED_PORTS"]:
-                    raise ValueError("این پورت برای پنل یا اتصال SSH رزرو شده است")
-                conflict = db.execute(
-                    "SELECT id FROM tunnels WHERE enabled=1 AND listen_port=? "
-                    "AND (protocol=? OR protocol='both' OR ?='both')", (listen, protocol, protocol)
-                ).fetchone()
-                if conflict:
-                    raise ValueError("این پورت و پروتکل قبلاً استفاده شده است")
-                cur = db.execute(
-                    "INSERT INTO tunnels(name,server_id,mode,protocol,listen_port,target_port,status) VALUES(?,?,?,?,?,?,?)",
-                    (name, server_id, mode, protocol, listen, target, "applying")
-                )
-                tunnel_id = cur.lastrowid
-                db.commit()
+                name, server_id, server, mode, protocol, listen, target = validate_tunnel_form(db, app.config["RESERVED_PORTS"])
+                cur = db.execute("INSERT INTO tunnels(name,server_id,mode,protocol,listen_port,target_port,status) VALUES(?,?,?,?,?,?,?)", (name, server_id, mode, protocol, listen, target, "applying"))
+                tunnel_id = cur.lastrowid; db.commit()
                 tunnel = db.execute("SELECT * FROM tunnels WHERE id=?", (tunnel_id,)).fetchone()
                 apply_tunnel(tunnel, server)
-                db.execute("UPDATE tunnels SET status='active',last_error=NULL WHERE id=?", (tunnel_id,))
-                db.commit()
+                db.execute("UPDATE tunnels SET status='active',last_error=NULL WHERE id=?", (tunnel_id,)); db.commit()
                 flash("تونل با موفقیت فعال شد", "success")
                 return redirect(url_for("tunnels"))
             except (ValueError, RuntimeError, sqlite3.IntegrityError, OSError) as exc:
                 if tunnel_id:
-                    db.execute("UPDATE tunnels SET enabled=0,status='error',last_error=? WHERE id=?", (str(exc)[:500], tunnel_id))
-                    db.commit()
+                    db.execute("UPDATE tunnels SET enabled=0,status='error',last_error=? WHERE id=?", (str(exc)[:500], tunnel_id)); db.commit()
                 flash(str(exc), "error")
-        rows = db.execute(
-            "SELECT t.*,s.name server_name,s.host FROM tunnels t JOIN servers s ON s.id=t.server_id ORDER BY t.id DESC"
-        ).fetchall()
+        rows = db.execute("SELECT t.*,s.name server_name,s.host FROM tunnels t JOIN servers s ON s.id=t.server_id ORDER BY t.id DESC").fetchall()
         servers_list = db.execute("SELECT * FROM servers ORDER BY name").fetchall()
-        return render_template("tunnels.html", tunnels=rows, servers=servers_list)
+        return render_template("tunnels.html", tunnels=decorate_tunnels(rows, traffic_map(app)), servers=servers_list)
+
+    @app.route("/tunnels/<int:tunnel_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def tunnel_edit(tunnel_id):
+        db = get_db()
+        tunnel = db.execute("SELECT * FROM tunnels WHERE id=?", (tunnel_id,)).fetchone()
+        if not tunnel:
+            return ("not found", 404)
+        servers_list = db.execute("SELECT * FROM servers ORDER BY name").fetchall()
+        if request.method == "POST":
+            check_csrf()
+            old = dict(tunnel)
+            old_server = db.execute("SELECT * FROM servers WHERE id=?", (old["server_id"],)).fetchone()
+            try:
+                name, server_id, server, mode, protocol, listen, target = validate_tunnel_form(db, app.config["RESERVED_PORTS"], current_id=tunnel_id)
+                remove_tunnel(tunnel, old_server)
+                db.execute("UPDATE tunnels SET name=?,server_id=?,mode=?,protocol=?,listen_port=?,target_port=?,status='applying',last_error=NULL,enabled=1 WHERE id=?", (name, server_id, mode, protocol, listen, target, tunnel_id))
+                db.commit()
+                updated = db.execute("SELECT * FROM tunnels WHERE id=?", (tunnel_id,)).fetchone()
+                apply_tunnel(updated, server)
+                db.execute("UPDATE tunnels SET status='active',last_error=NULL WHERE id=?", (tunnel_id,)); db.commit()
+                maybe_remove_server_wg(old_server)
+                flash("تونل ویرایش و دوباره اعمال شد", "success")
+                return redirect(url_for("tunnels"))
+            except Exception as exc:
+                try:
+                    db.execute("UPDATE tunnels SET name=?,server_id=?,mode=?,protocol=?,listen_port=?,target_port=?,status='applying',last_error=NULL,enabled=1 WHERE id=?", (old["name"], old["server_id"], old["mode"], old["protocol"], old["listen_port"], old["target_port"], tunnel_id))
+                    db.commit()
+                    restored = db.execute("SELECT * FROM tunnels WHERE id=?", (tunnel_id,)).fetchone()
+                    apply_tunnel(restored, old_server)
+                    db.execute("UPDATE tunnels SET status='active',last_error=NULL WHERE id=?", (tunnel_id,)); db.commit()
+                    flash(f"ویرایش ناموفق بود و تنظیم قبلی برگردانده شد: {exc}", "error")
+                except Exception as rollback_exc:
+                    db.execute("UPDATE tunnels SET enabled=0,status='error',last_error=? WHERE id=?", (str(rollback_exc)[:500], tunnel_id)); db.commit()
+                    flash(f"ویرایش ناموفق بود و Rollback هم کامل نشد: {rollback_exc}", "error")
+                return redirect(url_for("tunnels"))
+        return render_template("tunnel_edit.html", tunnel=tunnel, servers=servers_list)
 
     @app.post("/tunnels/<int:tunnel_id>/delete")
     @login_required
@@ -271,8 +362,7 @@ def create_app():
         server = db.execute("SELECT * FROM servers WHERE id=?", (tunnel["server_id"],)).fetchone()
         try:
             remove_tunnel(tunnel, server)
-            db.execute("DELETE FROM tunnels WHERE id=?", (tunnel_id,))
-            db.commit()
+            db.execute("DELETE FROM tunnels WHERE id=?", (tunnel_id,)); db.commit()
             maybe_remove_server_wg(server)
             flash("تونل و قوانین آن حذف شدند", "success")
         except Exception as exc:
