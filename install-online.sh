@@ -11,10 +11,16 @@ DOMAIN="${PANEL_DOMAIN:-}"
 EMAIL="${LETSENCRYPT_EMAIL:-${PANEL_LETSENCRYPT_EMAIL:-}}"
 
 if [[ -z "$DOMAIN" ]]; then
-  read -rp "Panel domain for Let's Encrypt SSL (optional, press Enter to skip): " DOMAIN
+  read -rp "Panel domain for initial SSL setup (optional, press Enter for self-signed): " DOMAIN
 fi
-if [[ -n "$DOMAIN" && -z "$EMAIL" ]]; then
-  read -rp "Email for Let's Encrypt notices (optional): " EMAIL
+if [[ -n "$DOMAIN" ]]; then
+  [[ "$DOMAIN" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$ ]] || {
+    echo "Invalid domain name." >&2
+    exit 1
+  }
+  if [[ -z "$EMAIL" ]]; then
+    read -rp "Email for Let's Encrypt notices (optional): " EMAIL
+  fi
 fi
 
 export PANEL_DOMAIN="$DOMAIN"
@@ -35,10 +41,27 @@ else
 fi
 
 cd "$SOURCE_DIR"
+
+# Base install first, then update stage installs the latest helper, renderer and Go agent.
 bash ./install.sh "$@"
 env TUNNELMOD_UPDATE_APPLY=1 TUNNELMOD_SOURCE_DIR="$SOURCE_DIR" bash ./update.sh
 
+# Domain SSL is part of the initial installer flow, not a separate user step.
 if [[ -n "$DOMAIN" ]]; then
-  echo "Activating domain SSL for: $DOMAIN"
+  echo "Configuring Let's Encrypt SSL during installation: $DOMAIN"
   bash ./domain.sh "$DOMAIN" "$EMAIL"
 fi
+
+if ! curl -kfsS --max-time 5 https://127.0.0.1:8443/login -o /dev/null; then
+  echo "Installation health check failed. Run: sudo tunnelmod-diagnose" >&2
+  exit 1
+fi
+
+echo
+echo "TunnelMod installation finished."
+if [[ -n "$DOMAIN" ]]; then
+  echo "Panel URL: https://${DOMAIN}:8443"
+else
+  echo "Panel URL: https://YOUR_SERVER_IP:8443"
+fi
+echo "Updates: sudo tunnelmod-update or use System and Update inside the panel."
