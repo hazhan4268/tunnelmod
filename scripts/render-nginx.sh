@@ -17,19 +17,31 @@ if [[ -r "$ENV_FILE" ]]; then
 fi
 
 PANEL_DOMAIN="${PANEL_DOMAIN:-}"
+PANEL_TLS_MODE="${PANEL_TLS_MODE:-off}"
 SSL_CERT="/etc/tunnel-panel/panel.crt"
 SSL_KEY="/etc/tunnel-panel/panel.key"
 SERVER_NAME="_"
 HTTP_BLOCK=""
+LISTEN_LINE="listen 8443;"
+LISTEN_IPV6_LINE="listen [::]:8443;"
+TLS_LINES=""
+FORWARDED_PROTO="http"
 
 if [[ -n "$PANEL_DOMAIN" ]]; then
   SERVER_NAME="$PANEL_DOMAIN"
-  install -d -o www-data -g www-data -m 755 "$ACME_ROOT"
-  if [[ -s "/etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem" && -s "/etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem" ]]; then
-    SSL_CERT="/etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem"
-    SSL_KEY="/etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem"
-  fi
-  HTTP_BLOCK="server {
+fi
+
+if [[ "$PANEL_TLS_MODE" != "off" ]]; then
+  LISTEN_LINE="listen 8443 ssl;"
+  LISTEN_IPV6_LINE="listen [::]:8443 ssl;"
+  FORWARDED_PROTO="https"
+  if [[ -n "$PANEL_DOMAIN" ]]; then
+    install -d -o www-data -g www-data -m 755 "$ACME_ROOT"
+    if [[ -s "/etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem" && -s "/etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem" ]]; then
+      SSL_CERT="/etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem"
+      SSL_KEY="/etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem"
+    fi
+    HTTP_BLOCK="server {
     listen 80;
     listen [::]:80;
     server_name ${SERVER_NAME};
@@ -43,6 +55,12 @@ if [[ -n "$PANEL_DOMAIN" ]]; then
     }
 }
 "
+  fi
+  TLS_LINES="    ssl_certificate ${SSL_CERT};
+    ssl_certificate_key ${SSL_KEY};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_tickets off;
+    add_header Strict-Transport-Security \"max-age=31536000\" always;"
 fi
 
 backup_nginx_conf_once() {
@@ -69,35 +87,30 @@ proxy_headers_hash_bucket_size 128;
 ${HTTP_BLOCK}
 limit_req_zone \$binary_remote_addr zone=panel_login:10m rate=10r/m;
 server {
-    listen 8443 ssl;
-    listen [::]:8443 ssl;
+    ${LISTEN_LINE}
+    ${LISTEN_IPV6_LINE}
     server_name ${SERVER_NAME};
-
-    ssl_certificate ${SSL_CERT};
-    ssl_certificate_key ${SSL_KEY};
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_session_tickets off;
-    add_header Strict-Transport-Security "max-age=31536000" always;
+${TLS_LINES}
     client_max_body_size 64k;
 
     location = /login {
         limit_req zone=panel_login burst=5 nodelay;
         proxy_pass http://127.0.0.1:9080;
         include proxy_params;
-        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Proto ${FORWARDED_PROTO};
     }
 
     location / {
         proxy_pass http://127.0.0.1:9080;
         include proxy_params;
-        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Proto ${FORWARDED_PROTO};
     }
 }
 EOF
 }
 
 nginx_loads_panel() {
-  nginx -T 2>/tmp/tunnelmod-nginx-render.log | grep -Eq 'listen[[:space:]]+(\[::\]:)?8443[[:space:]]+ssl'
+  nginx -T 2>/tmp/tunnelmod-nginx-render.log | grep -Eq 'listen[[:space:]]+(\[::\]:)?8443([[:space:]]+ssl)?'
 }
 
 try_conf_d() {
@@ -133,17 +146,17 @@ try_direct_include() {
 install -d -o root -g root -m 755 /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabled
 
 if try_conf_d; then
-  echo "TunnelMod Nginx include mode: conf.d"
+  echo "TunnelMod Nginx include mode: conf.d, tls=${PANEL_TLS_MODE}"
   exit 0
 fi
 
 if try_sites_enabled; then
-  echo "TunnelMod Nginx include mode: sites-enabled"
+  echo "TunnelMod Nginx include mode: sites-enabled, tls=${PANEL_TLS_MODE}"
   exit 0
 fi
 
 if try_direct_include; then
-  echo "TunnelMod Nginx include mode: direct nginx.conf include"
+  echo "TunnelMod Nginx include mode: direct nginx.conf include, tls=${PANEL_TLS_MODE}"
   exit 0
 fi
 
