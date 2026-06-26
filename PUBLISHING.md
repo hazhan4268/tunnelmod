@@ -11,7 +11,7 @@ git init
 git branch -M main
 git remote add origin https://github.com/hazhan4268/tunnelmod.git
 git add .
-git commit -m "Public beta: TunnelMod 0.1.0"
+git commit -m "Public beta: TunnelMod 0.1.1"
 git push -u origin main
 ```
 
@@ -22,8 +22,8 @@ If GitHub rejects the push because the repository already contains commits, clon
 After CI passes:
 
 ```bash
-git tag -a v0.1.0-beta -m "TunnelMod 0.1.0 beta"
-git push origin v0.1.0-beta
+git tag -a v0.1.1-beta -m "TunnelMod 0.1.1 beta"
+git push origin v0.1.1-beta
 ```
 
 Create a GitHub Release from this tag and mark it as a **pre-release**. Include the beta warning and a link to `SECURITY.md`.
@@ -34,4 +34,3 @@ Create a GitHub Release from this tag and mark it as a **pre-release**. Include 
 - Protect the `main` branch and require the CI workflow.
 - Enable Dependabot security updates.
 - Never upload `/etc/tunnel-panel`, `/var/lib/tunnel-panel`, databases, private keys, passwords, or real server backups.
-
