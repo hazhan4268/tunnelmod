@@ -67,8 +67,9 @@ visudo -cf /etc/sudoers.d/tunnel-panel >/dev/null
 
 install -o root -g root -m 644 "$SCRIPT_DIR/scripts/tunnel-panel.service" /etc/systemd/system/tunnel-panel.service
 install -o root -g root -m 644 "$SCRIPT_DIR/scripts/tunnel-panel-haproxy.service" /etc/systemd/system/tunnel-panel-haproxy.service
-install -o root -g root -m 644 "$SCRIPT_DIR/scripts/nginx.conf.template" /etc/nginx/sites-available/tunnel-panel
-ln -sf /etc/nginx/sites-available/tunnel-panel /etc/nginx/sites-enabled/tunnel-panel
+install -d -o root -g root -m 755 /etc/nginx/conf.d
+install -o root -g root -m 644 "$SCRIPT_DIR/scripts/nginx.conf.template" /etc/nginx/conf.d/tunnel-panel.conf
+rm -f /etc/nginx/sites-enabled/tunnel-panel
 
 openssl req -x509 -newkey rsa:3072 -sha256 -days 825 -nodes \
   -keyout /etc/tunnel-panel/panel.key -out /etc/tunnel-panel/panel.crt \
