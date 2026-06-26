@@ -1,53 +1,49 @@
-# TunnelMod
+<div align="center">
+
+# 🚇 TunnelMod
+
+**پنل تونل Ubuntu برای WireGuard، DNAT و HAProxy**
+
+![نسخه](https://img.shields.io/badge/version-1.2.4-22c55e?style=flat-square)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04+-E95420?style=flat-square&logo=ubuntu&logoColor=white)
+![مجوز](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)
 
 [English](README.md)
 
-TunnelMod یک پنل نصب‌شونده روی Ubuntu برای مدیریت تونل‌های چندسروره با WireGuard، DNAT و HAProxy است.
+</div>
 
-## پیش‌نیازها
+---
 
-- Ubuntu 20.04 یا جدیدتر
-- دسترسی کامل sudo/root
-- IPv4 عمومی
-- باز بودن پورت TCP/8443 برای پنل
-- باز بودن پورت TCP/80 برای SSL دامنه
-
-## نصب
+## ⚡ نصب فقط با یک دستور
 
 ```bash
-wget -qO install-online.sh https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh
-sudo bash install-online.sh
+curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/install-online.sh -o /tmp/tunnelmod-install && sudo bash /tmp/tunnelmod-install
 ```
 
-نصب‌کننده در صورت امکان محیط گرافیکی ترمینال را نشان می‌دهد. برای حالت متنی ساده:
+نصب‌کننده محیط گرافیکی ترمینال را باز می‌کند. همان‌جا دامنه را وارد کن تا SSL هم در همان روند نصب گرفته شود.
 
-```bash
-TUNNELMOD_NO_TUI=1 sudo -E bash install-online.sh
-```
+| نیاز | پورت |
+|---|---:|
+| پنل | `8443/TCP` |
+| SSL دامنه | `80/TCP` |
 
-آدرس پنل:
+---
+
+## 🌐 آدرس پنل
 
 ```text
 https://IP-SERVER:8443
 ```
 
-## SSL دامنه
-
-در زمان نصب، دامنه پنل را وارد کنید تا SSL دامنه در همان روند نصب فعال شود.
-
-نمونه آدرس با دامنه:
+با SSL دامنه:
 
 ```text
 https://panel.example.com:8443
 ```
 
-برای تغییر SSL بعد از نصب:
+---
 
-```bash
-sudo tunnelmod-domain panel.example.com admin@example.com
-```
-
-## به‌روزرسانی
+## 🔄 به‌روزرسانی
 
 از داخل پنل:
 
@@ -61,24 +57,27 @@ sudo tunnelmod-domain panel.example.com admin@example.com
 sudo tunnelmod-update
 ```
 
-## تعمیر نصب ناقص
+---
+
+## 🛠 تعمیر نصب ناقص
 
 ```bash
-wget -qO repair-install.sh https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/repair-install.sh
-sudo bash repair-install.sh
+curl -fsSL https://raw.githubusercontent.com/hazhan4268/tunnelmod/main/repair-install.sh -o /tmp/tunnelmod-repair && sudo bash /tmp/tunnelmod-repair
 ```
 
-## عیب‌یابی
+---
+
+## 🔍 عیب‌یابی
 
 ```bash
 sudo tunnelmod-diagnose
 ```
 
-## امنیت
+---
+
+## 🔐 امنیت
 
 مسیرهای `/etc/tunnel-panel` و `/var/lib/tunnel-panel`، کلیدهای خصوصی، دیتابیس، رمزها و بکاپ واقعی سرورها را منتشر نکنید.
-
-IPهایی که هنگام نصب یا داخل پنل وارد می‌شوند فقط روی همان سرور نصب‌شده ذخیره می‌شوند و داخل این مخزن قرار نمی‌گیرند.
 
 ## مجوز
 
